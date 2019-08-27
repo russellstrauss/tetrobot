@@ -135,25 +135,31 @@ module.exports = function () {
     labelAxes: function labelAxes() {
       var self = this;
       var loader = new THREE.FontLoader();
-      loader.load('http://localhost:3000/assets/vendors/js/three.js/examples/fonts/helvetiker_regular.typeface.json', function (font) {
+      loader.load('../assets/vendors/js/three.js/examples/fonts/helvetiker_regular.typeface.json', function (font) {
         var fontStyle = {
           font: font,
-          size: .25,
+          size: 1,
           height: 0,
           curveSegments: 1
         };
-        var textGeometry = new THREE.TextGeometry('Y-axis', fontStyle);
+        var textGeometry = new THREE.TextGeometry('Y', fontStyle);
         var textMaterial = new THREE.MeshBasicMaterial({
-          color: 0xff0000
+          color: 0x00ff00
         });
         var mesh = new THREE.Mesh(textGeometry, textMaterial);
         textGeometry.translate(0, self.settings.axesHelper.axisLength, 0);
         scene.add(mesh);
-        textGeometry = new THREE.TextGeometry('X-axis', fontStyle);
+        textGeometry = new THREE.TextGeometry('X', fontStyle);
+        textMaterial = new THREE.MeshBasicMaterial({
+          color: 0xff0000
+        });
         mesh = new THREE.Mesh(textGeometry, textMaterial);
         textGeometry.translate(self.settings.axesHelper.axisLength, 0, 0);
         scene.add(mesh);
-        textGeometry = new THREE.TextGeometry('Z-axis', fontStyle);
+        textGeometry = new THREE.TextGeometry('Z', fontStyle);
+        textMaterial = new THREE.MeshBasicMaterial({
+          color: 0x0000ff
+        });
         mesh = new THREE.Mesh(textGeometry, textMaterial);
         textGeometry.translate(0, 0, self.settings.axesHelper.axisLength);
         scene.add(mesh);
