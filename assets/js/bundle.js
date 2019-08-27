@@ -19,18 +19,19 @@ module.exports = function () {
       self.enableStats();
       self.enableControls();
       self.resizeRendererOnWindowResize();
-      self.loadFonts();
       self.setUpLights();
       self.addTetrahedron();
-      camera.position.x = -10;
-      camera.position.y = 10;
-      camera.position.z = 10;
+      camera.position.x = -20;
+      camera.position.y = 20;
+      camera.position.z = 20;
 
       var animate = function animate() {
         requestAnimationFrame(animate);
         renderer.render(scene, camera);
         controls.update();
-        stats.update();
+        stats.update(); //tetrahedron.rotation.z += .001;
+
+        tetrahedron.rotation.x += .01;
       };
 
       animate();
@@ -40,8 +41,7 @@ module.exports = function () {
         if (renderer) {
           camera.aspect = window.innerWidth / window.innerHeight;
           camera.updateProjectionMatrix();
-          renderer.setSize(window.innerWidth, window.innerHeight);
-          controls.handleResize();
+          renderer.setSize(window.innerWidth, window.innerHeight); //controls.handleResize();
         }
       }, 250));
     },
@@ -70,7 +70,7 @@ module.exports = function () {
       scene.add(light);
       lights.push(light);
       var light2 = new THREE.DirectionalLight(color, intensity);
-      light2.position.set(10, 6, 8);
+      light2.position.set(0, 2, -8);
       scene.add(light2);
       lights.push(light2);
 
@@ -84,39 +84,18 @@ module.exports = function () {
         scene.add(helper);
       }
     },
-    activateAxesHelper: function activateAxesHelper() {
-      var self = this;
-      var axesHelper = new THREE.AxesHelper(self.settings.axesHelper.axisLength);
-      scene.add(axesHelper); // 	var  textGeo = new THREE.TextGeometry('Y', {
-      // 		size: 5,
-      // 		height: 2,
-      // 		curveSegments: 6,
-      // 		font: "helvetiker",
-      // 		style: "normal"       
-      //    });
-      //    var  color = new THREE.Color();
-      //    color.setRGB(255, 250, 250);
-      //    var  textMaterial = new THREE.MeshBasicMaterial({ color: color });
-      //    var  text = new THREE.Mesh(textGeo , textMaterial);
-      //    text.position.x = axis.geometry.vertices[1].x;
-      //    text.position.y = axis.geometry.vertices[1].y;
-      //    text.position.z = axis.geometry.vertices[1].z;
-      //    text.rotation = camera.rotation;
-      //    scene.add(text);
-    },
     addFloor: function addFloor() {
-      var planeGeometry = new THREE.PlaneBufferGeometry(2000, 2000);
+      var planeGeometry = new THREE.PlaneBufferGeometry(100, 100);
       planeGeometry.rotateX(-Math.PI / 2);
       var planeMaterial = new THREE.ShadowMaterial({
         opacity: 0.2
       });
       var plane = new THREE.Mesh(planeGeometry, planeMaterial);
-      plane.position.y = 0;
+      plane.position.y = -1;
       plane.receiveShadow = true;
       scene.add(plane);
-      var helper = new THREE.GridHelper(2000, 100);
-      helper.position.y = -1;
-      helper.material.opacity = 0.25;
+      var helper = new THREE.GridHelper(1000, 100);
+      helper.material.opacity = .25;
       helper.material.transparent = true;
       scene.add(helper);
     },
@@ -124,7 +103,7 @@ module.exports = function () {
       var self = this;
       scene = new THREE.Scene();
       scene.background = new THREE.Color(0xf0f0f0);
-      camera = new THREE.PerspectiveCamera(100, window.innerWidth / window.innerHeight, 1, 1000);
+      camera = new THREE.PerspectiveCamera(70, window.innerWidth / window.innerHeight, 1, 1000);
       renderer = new THREE.WebGLRenderer();
       renderer.setSize(window.innerWidth, window.innerHeight);
       document.body.appendChild(renderer.domElement);
@@ -143,11 +122,17 @@ module.exports = function () {
         color: 0x08CDFA
       });
       tetrahedron = new THREE.Mesh(geometry, material);
-      tetrahedron.position.y = 5.0 / 2;
-      tetrahedron.rotation.x = Math.PI / 2;
+      tetrahedron.position.y = 5.0 / 2; //tetrahedron.rotation.x = 12 * (Math.PI / 6);
+
       scene.add(tetrahedron);
     },
-    loadFonts: function loadFonts() {
+    activateAxesHelper: function activateAxesHelper() {
+      var self = this;
+      var axesHelper = new THREE.AxesHelper(self.settings.axesHelper.axisLength);
+      scene.add(axesHelper);
+      self.labelAxes();
+    },
+    labelAxes: function labelAxes() {
       var self = this;
       var loader = new THREE.FontLoader();
       loader.load('http://localhost:3000/assets/vendors/js/three.js/examples/fonts/helvetiker_regular.typeface.json', function (font) {
