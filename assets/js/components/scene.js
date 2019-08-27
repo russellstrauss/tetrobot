@@ -10,6 +10,9 @@ module.exports = function() {
 			axesHelper: {
 				activateAxesHelper: true,
 				axisLength: 10
+			},
+			tetrahedron: {
+				size: 5
 			}
 		},
 		
@@ -36,8 +39,8 @@ module.exports = function() {
 				controls.update();
 				stats.update();
 				
-				//tetrahedron.rotation.z += .001;
-				tetrahedron.rotation.x += .01;
+				// tetrahedron.rotation.z += .001;
+				// tetrahedron.rotation.x += .001;
 			};
 			
 			animate();
@@ -52,7 +55,6 @@ module.exports = function() {
 					camera.aspect = window.innerWidth / window.innerHeight;
 					camera.updateProjectionMatrix();
 					renderer.setSize(window.innerWidth, window.innerHeight);
-					//controls.handleResize();
 				}
 			}, 250));
 		},
@@ -135,11 +137,17 @@ module.exports = function() {
 		},
 
 		addTetrahedron: function() {
-			var geometry = new THREE.TetrahedronGeometry(5, 0);
-			var material = new THREE.MeshBasicMaterial({wireframe: true, color: 0x08CDFA });
-			var material = new THREE.MeshPhongMaterial({color: 0x08CDFA });
+			
+			let self = this;
+			let geometry = new THREE.TetrahedronGeometry(self.settings.tetrahedron.size, 0);
+			//let material = new THREE.MeshBasicMaterial({wireframe: true, color: 0x08CDFA });
+			let material = new THREE.MeshPhongMaterial({color: 0x08CDFA });
 			tetrahedron = new THREE.Mesh(geometry, material);
-			tetrahedron.position.y = 5.0 / 2;
+			
+			
+			
+			tetrahedron.position.y += self.settings.tetrahedron.size / 2;
+			
 			//tetrahedron.rotation.x = 12 * (Math.PI / 6);
 			scene.add(tetrahedron);
 		},
