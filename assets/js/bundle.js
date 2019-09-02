@@ -117,13 +117,19 @@ module.exports = function () {
     addTetrahedron: function addTetrahedron() {
       var self = this;
       var geometry = new THREE.TetrahedronGeometry(self.settings.tetrahedron.size, 0);
-      var material = new THREE.MeshBasicMaterial({
+      var wireframeMaterial = new THREE.MeshBasicMaterial({
         wireframe: true,
         color: 0x08CDFA
-      }); //let material = new THREE.MeshPhongMaterial({color: 0x08CDFA });
-      // tetrahedron.rotation.z = Math.PI / 4;
+      });
+      var shadeMaterial = new THREE.MeshPhongMaterial({
+        color: 0x08CDFA,
+        side: THREE.DoubleSide
+      }); // tetrahedron.rotation.z = Math.PI / 4;
 
-      geometry.applyMatrix(new THREE.Matrix4().makeRotationAxis(new THREE.Vector3(1, 0, -1).normalize(), Math.atan(Math.sqrt(2)))); //tetrahedron.position.y += self.settings.tetrahedron.size / 2;
+      geometry.applyMatrix(new THREE.Matrix4().makeRotationAxis(new THREE.Vector3(1, 0, -1).normalize(), Math.atan(Math.sqrt(2)))); // Rotate to be flat on floor
+
+      geometry.rotateY(Math.PI / 4); // rotate to line up with x-axis
+      //tetrahedron.position.y += self.settings.tetrahedron.size / 2;
       // Calculating centroid of a tetrahedron: https://www.youtube.com/watch?v=Infxzuqd_F4
       // Next step: write method to calculate centroid location from 4 current vertices locations
 
@@ -132,29 +138,47 @@ module.exports = function () {
       centroidOfBottomFace.y = (geometry.vertices[0].y + geometry.vertices[1].y + geometry.vertices[3].y) / 3;
       centroidOfBottomFace.z = (geometry.vertices[0].z + geometry.vertices[1].z + geometry.vertices[3].z) / 3; //self.showPoint(centroidOfBottomFace_x, centroidOfBottomFace_y, centroidOfBottomFace_z, 0x0000ff);
 
-      var tetrahedronHeight = self.distanceBetweenPoints(centroidOfBottomFace, geometry.vertices[2]); // Calulate centroid
+      var tetrahedronHeight = self.getDistance(centroidOfBottomFace, geometry.vertices[2]); // Calulate centroid
 
       var centroid = self.calculateCentroidLocation(geometry.vertices); //self.showPoint(centroid.x, centroid.y, centroid.z, 0x000000);
       // move vertices
 
       for (var i = 0; i < geometry.vertices.length; i++) {
-        var colors = [0xCE3611, 0x00CE17, 0x03BAEE, 0x764E8C]; // 				[red, green, blue, purple]
+        var colors = [0xCE3611, 0x00CE17, 0x03BAEE, 0x764E8C]; // 				[red, 		green, 		blue, 		purple]
 
         geometry.vertices[i].y += tetrahedronHeight / 4;
         geometry.verticesNeedUpdate = true;
         self.showPoint(geometry.vertices[i], colors[i]);
-      }
+      } // Let's try to draw a triangle face
 
+
+      var triangleGeometry = self.createTriangle(geometry.vertices[0], geometry.vertices[1], geometry.vertices[3]);
       self.drawLine(geometry.vertices[1], geometry.vertices[3]);
       var midpoint = self.getMidpoint(geometry.vertices[1], geometry.vertices[3]);
       self.showPoint(midpoint, 0x0000ff);
-      tetrahedron = new THREE.Mesh(geometry, material); //tetrahedron.rotation.y = Math.PI / 4;
-      //geometry.verticesNeedUpdate = true;
+      var halfSideLength = self.getDistance(geometry.vertices[1], midpoint);
+      var hypotenuse = self.getDistance(geometry.vertices[1], geometry.vertices[3]);
+      var height = hypotenuse - halfSideLength; // pythagorean
 
-      scene.add(tetrahedron); // var material = new THREE.LineBasicMaterial( { color: 0x0000ff } );
-      // var geometry = new THREE.Geometry();
-      // geometry.vertices.push(new THREE.Vector3( -10, 0, 0) );
-      // geometry.vertices.push(new THREE.Vector3( 0, 10, 0) );
+      var triangleMesh = new THREE.Mesh(triangleGeometry, wireframeMaterial);
+      scene.add(triangleMesh); //self.rotateOnAxis(triangleMesh, geometry.vertices[1], geometry.vertices[3], Math.PI);
+
+      var tetrahedron = new THREE.Mesh(geometry, wireframeMaterial);
+      scene.add(tetrahedron);
+      self.rotateOnAxis(triangleMesh, geometry.vertices[0], geometry.vertices[1], Math.PI); //self.rotateOnAxis(tetrahedron, geometry.vertices[0], geometry.vertices[1], Math.PI / 2);
+    },
+    rotateOnAxis: function rotateOnAxis(object, axisPt1, axisPt2, angle) {
+      var self = this;
+      var pivotPoint = self.getMidpoint(axisPt1, axisPt2);
+      var rotationAxis = self.createVector(axisPt1, axisPt2);
+      rotationAxis.normalize();
+      object.position.sub(pivotPoint); // remove the offset
+
+      object.position.applyAxisAngle(rotationAxis, angle); // rotate the POSITION
+
+      object.position.add(pivotPoint); // re-add the offset
+
+      object.rotateOnAxis(rotationAxis, angle); // rotate the OBJECT
     },
     showPoint: function showPoint(pt, color) {
       color = color || 0xff0000;
@@ -168,20 +192,28 @@ module.exports = function () {
       var dot = new THREE.Points(dotGeometry, dotMaterial);
       scene.add(dot);
     },
-    drawLine: function drawLine(point1, point2) {
+    showVector: function showVector(vector, origin, color) {
+      color = color || 0xff0000;
+      var arrowHelper = new THREE.ArrowHelper(vector, origin, origin.distanceTo(vector), color);
+      scene.add(arrowHelper);
+    },
+    drawLine: function drawLine(pt1, pt2) {
       var material = new THREE.LineBasicMaterial({
         color: 0x0000ff
       });
       var geometry = new THREE.Geometry();
-      geometry.vertices.push(new THREE.Vector3(point1.x, point1.y, point1.z));
-      geometry.vertices.push(new THREE.Vector3(point2.x, point2.y, point2.z));
+      geometry.vertices.push(new THREE.Vector3(pt1.x, pt1.y, pt1.z));
+      geometry.vertices.push(new THREE.Vector3(pt2.x, pt2.y, pt2.z));
       var line = new THREE.Line(geometry, material);
       scene.add(line);
     },
-    distanceBetweenPoints: function distanceBetweenPoints(pt1, pt2) {
+    getDistance: function getDistance(pt1, pt2) {
       // create point class?
       var squirt = Math.pow(pt2.x - pt1.x, 2) + Math.pow(pt2.y - pt1.y, 2) + Math.pow(pt2.z - pt1.z, 2);
       return Math.sqrt(squirt);
+    },
+    createVector: function createVector(pt1, pt2) {
+      return new THREE.Vector3(pt2.x - pt1.x, pt2.y - pt2.y, pt2.z - pt1.z);
     },
     getMidpoint: function getMidpoint(pt1, pt2) {
       var midpoint = {};
@@ -189,6 +221,16 @@ module.exports = function () {
       midpoint.y = (pt1.y + pt2.y) / 2;
       midpoint.z = (pt1.z + pt2.z) / 2;
       return midpoint;
+    },
+    createTriangle: function createTriangle(pt1, pt2, pt3) {
+      // return geometry
+      var triangleGeometry = new THREE.Geometry();
+      triangleGeometry.vertices.push(new THREE.Vector3(pt1.x, pt1.y, pt1.z));
+      triangleGeometry.vertices.push(new THREE.Vector3(pt2.x, pt2.y, pt2.z));
+      triangleGeometry.vertices.push(new THREE.Vector3(pt3.x, pt3.y, pt3.z));
+      triangleGeometry.faces.push(new THREE.Face3(0, 1, 2));
+      triangleGeometry.computeFaceNormals();
+      return triangleGeometry;
     },
     calculateCentroidLocation: function calculateCentroidLocation(geometryVertices) {
       var result = {};
