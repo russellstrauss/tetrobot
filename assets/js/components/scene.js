@@ -39,7 +39,7 @@ module.exports = function() {
 				controls.update();
 				stats.update();
 				
-				// tetrahedron.rotation.z += .001;
+				//tetrahedron.rotation.z += .001;
 				// tetrahedron.rotation.x += .001;
 			};
 			
@@ -140,16 +140,56 @@ module.exports = function() {
 			
 			let self = this;
 			let geometry = new THREE.TetrahedronGeometry(self.settings.tetrahedron.size, 0);
-			//let material = new THREE.MeshBasicMaterial({wireframe: true, color: 0x08CDFA });
-			let material = new THREE.MeshPhongMaterial({color: 0x08CDFA });
+			let material = new THREE.MeshBasicMaterial({wireframe: true, color: 0x08CDFA });
+			//let material = new THREE.MeshPhongMaterial({color: 0x08CDFA });
+			
+			
+			
+			
+			
+			// tetrahedron.rotation.z = Math.PI / 4;
+			geometry.applyMatrix( new THREE.Matrix4().makeRotationAxis( new THREE.Vector3( 1, 0, -1 ).normalize(), Math.atan( Math.sqrt(2)) ) );
+			
+			
+			//tetrahedron.position.y += self.settings.tetrahedron.size / 2;
+			
+			
+			console.log(geometry.vertices);
+			
+			for (let i = 0; i < geometry.vertices.length; i++) {
+				
+				geometry.vertices[i].y += self.settings.tetrahedron.size / 2;
+				geometry.verticesNeedUpdate = true;
+				
+				let color = 0xff0000;
+				if (i === 2) color = 0x00ff00;
+				
+				self.showPoint(geometry.vertices[i].x, geometry.vertices[i].y, geometry.vertices[i].z, color);
+			}
+			
+			let centroidOfBottomFace_x = (geometry.vertices[0].x + geometry.vertices[1].x + geometry.vertices[3].x) / 3;
+			let centroidOfBottomFace_y = (geometry.vertices[0].y + geometry.vertices[1].y + geometry.vertices[3].y) / 3;
+			let centroidOfBottomFace_z = (geometry.vertices[0].z + geometry.vertices[1].z + geometry.vertices[3].z) / 3;
+			self.showPoint(centroidOfBottomFace_x, centroidOfBottomFace_y, centroidOfBottomFace_z, 0x0000ff);
+			
+			
 			tetrahedron = new THREE.Mesh(geometry, material);
-			
-			
-			
-			tetrahedron.position.y += self.settings.tetrahedron.size / 2;
-			
-			//tetrahedron.rotation.x = 12 * (Math.PI / 6);
+			//tetrahedron.rotation.y = Math.PI / 4;
+			//geometry.verticesNeedUpdate = true;
 			scene.add(tetrahedron);
+			
+			// var material = new THREE.LineBasicMaterial( { color: 0x0000ff } );
+			// var geometry = new THREE.Geometry();
+			// geometry.vertices.push(new THREE.Vector3( -10, 0, 0) );
+			// geometry.vertices.push(new THREE.Vector3( 0, 10, 0) );
+		},
+		
+		showPoint: function(x, y, z, color) {
+			let dotGeometry = new THREE.Geometry();
+			dotGeometry.vertices.push(new THREE.Vector3(x, y, z));
+			let dotMaterial = new THREE.PointsMaterial({ size: 10, sizeAttenuation: false, color: color });
+			let dot = new THREE.Points(dotGeometry, dotMaterial);
+			scene.add(dot);
 		},
 		
 		activateAxesHelper: function() {
