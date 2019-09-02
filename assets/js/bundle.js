@@ -124,21 +124,30 @@ module.exports = function () {
       // tetrahedron.rotation.z = Math.PI / 4;
 
       geometry.applyMatrix(new THREE.Matrix4().makeRotationAxis(new THREE.Vector3(1, 0, -1).normalize(), Math.atan(Math.sqrt(2)))); //tetrahedron.position.y += self.settings.tetrahedron.size / 2;
+      // Calculating centroid of a tetrahedron: https://www.youtube.com/watch?v=Infxzuqd_F4
+      // Next step: write method to calculate centroid location from 4 current vertices locations
 
-      console.log(geometry.vertices);
+      var centroidOfBottomFace = {};
+      centroidOfBottomFace.x = (geometry.vertices[0].x + geometry.vertices[1].x + geometry.vertices[3].x) / 3;
+      centroidOfBottomFace.y = (geometry.vertices[0].y + geometry.vertices[1].y + geometry.vertices[3].y) / 3;
+      centroidOfBottomFace.z = (geometry.vertices[0].z + geometry.vertices[1].z + geometry.vertices[3].z) / 3; //self.showPoint(centroidOfBottomFace_x, centroidOfBottomFace_y, centroidOfBottomFace_z, 0x0000ff);
+
+      var tetrahedronHeight = self.distanceBetweenPoints(centroidOfBottomFace, geometry.vertices[2]); // Calulate centroid
+
+      var centroid = self.calculateCentroidLocation(geometry.vertices); //self.showPoint(centroid.x, centroid.y, centroid.z, 0x000000);
+      // move vertices
 
       for (var i = 0; i < geometry.vertices.length; i++) {
-        geometry.vertices[i].y += self.settings.tetrahedron.size / 2;
+        var colors = [0xCE3611, 0x00CE17, 0x03BAEE, 0x764E8C]; // 				[red, green, blue, purple]
+
+        geometry.vertices[i].y += tetrahedronHeight / 4;
         geometry.verticesNeedUpdate = true;
-        var color = 0xff0000;
-        if (i === 2) color = 0x00ff00;
-        self.showPoint(geometry.vertices[i].x, geometry.vertices[i].y, geometry.vertices[i].z, color);
+        self.showPoint(geometry.vertices[i], colors[i]);
       }
 
-      var centroidOfBottomFace_x = (geometry.vertices[0].x + geometry.vertices[1].x + geometry.vertices[3].x) / 3;
-      var centroidOfBottomFace_y = (geometry.vertices[0].y + geometry.vertices[1].y + geometry.vertices[3].y) / 3;
-      var centroidOfBottomFace_z = (geometry.vertices[0].z + geometry.vertices[1].z + geometry.vertices[3].z) / 3;
-      self.showPoint(centroidOfBottomFace_x, centroidOfBottomFace_y, centroidOfBottomFace_z, 0x0000ff);
+      self.drawLine(geometry.vertices[1], geometry.vertices[3]);
+      var midpoint = self.getMidpoint(geometry.vertices[1], geometry.vertices[3]);
+      self.showPoint(midpoint, 0x0000ff);
       tetrahedron = new THREE.Mesh(geometry, material); //tetrahedron.rotation.y = Math.PI / 4;
       //geometry.verticesNeedUpdate = true;
 
@@ -147,9 +156,10 @@ module.exports = function () {
       // geometry.vertices.push(new THREE.Vector3( -10, 0, 0) );
       // geometry.vertices.push(new THREE.Vector3( 0, 10, 0) );
     },
-    showPoint: function showPoint(x, y, z, color) {
+    showPoint: function showPoint(pt, color) {
+      color = color || 0xff0000;
       var dotGeometry = new THREE.Geometry();
-      dotGeometry.vertices.push(new THREE.Vector3(x, y, z));
+      dotGeometry.vertices.push(new THREE.Vector3(pt.x, pt.y, pt.z));
       var dotMaterial = new THREE.PointsMaterial({
         size: 10,
         sizeAttenuation: false,
@@ -157,6 +167,50 @@ module.exports = function () {
       });
       var dot = new THREE.Points(dotGeometry, dotMaterial);
       scene.add(dot);
+    },
+    drawLine: function drawLine(point1, point2) {
+      var material = new THREE.LineBasicMaterial({
+        color: 0x0000ff
+      });
+      var geometry = new THREE.Geometry();
+      geometry.vertices.push(new THREE.Vector3(point1.x, point1.y, point1.z));
+      geometry.vertices.push(new THREE.Vector3(point2.x, point2.y, point2.z));
+      var line = new THREE.Line(geometry, material);
+      scene.add(line);
+    },
+    distanceBetweenPoints: function distanceBetweenPoints(pt1, pt2) {
+      // create point class?
+      var squirt = Math.pow(pt2.x - pt1.x, 2) + Math.pow(pt2.y - pt1.y, 2) + Math.pow(pt2.z - pt1.z, 2);
+      return Math.sqrt(squirt);
+    },
+    getMidpoint: function getMidpoint(pt1, pt2) {
+      var midpoint = {};
+      midpoint.x = (pt1.x + pt2.x) / 2;
+      midpoint.y = (pt1.y + pt2.y) / 2;
+      midpoint.z = (pt1.z + pt2.z) / 2;
+      return midpoint;
+    },
+    calculateCentroidLocation: function calculateCentroidLocation(geometryVertices) {
+      var result = {};
+      var x = 0,
+          y = 0,
+          z = 0;
+
+      for (var i = 0; i < geometryVertices.length; i++) {
+        x += geometryVertices[i].x;
+        y += geometryVertices[i].y;
+        z += geometryVertices[i].z;
+      }
+
+      x = x / 4;
+      y = y / 4;
+      z = z / 4;
+      result = {
+        x: x,
+        y: y,
+        z: z
+      };
+      return result;
     },
     activateAxesHelper: function activateAxesHelper() {
       var self = this;

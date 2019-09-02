@@ -153,25 +153,35 @@ module.exports = function() {
 			
 			//tetrahedron.position.y += self.settings.tetrahedron.size / 2;
 			
+			// Calculating centroid of a tetrahedron: https://www.youtube.com/watch?v=Infxzuqd_F4
+			// Next step: write method to calculate centroid location from 4 current vertices locations
+			let centroidOfBottomFace = {};
+			centroidOfBottomFace.x = (geometry.vertices[0].x + geometry.vertices[1].x + geometry.vertices[3].x) / 3;
+			centroidOfBottomFace.y = (geometry.vertices[0].y + geometry.vertices[1].y + geometry.vertices[3].y) / 3;
+			centroidOfBottomFace.z = (geometry.vertices[0].z + geometry.vertices[1].z + geometry.vertices[3].z) / 3;
+			//self.showPoint(centroidOfBottomFace_x, centroidOfBottomFace_y, centroidOfBottomFace_z, 0x0000ff);
+			let tetrahedronHeight = self.distanceBetweenPoints(centroidOfBottomFace, geometry.vertices[2]);
 			
-			console.log(geometry.vertices);
+			// Calulate centroid
+			let centroid = self.calculateCentroidLocation(geometry.vertices);
+			//self.showPoint(centroid.x, centroid.y, centroid.z, 0x000000);
 			
+			// move vertices
 			for (let i = 0; i < geometry.vertices.length; i++) {
 				
-				geometry.vertices[i].y += self.settings.tetrahedron.size / 2;
+				let colors = 	[0xCE3611, 0x00CE17, 0x03BAEE, 0x764E8C]; 
+				// 				[red, green, blue, purple]
+				
+				geometry.vertices[i].y += tetrahedronHeight / 4;
 				geometry.verticesNeedUpdate = true;
 				
-				let color = 0xff0000;
-				if (i === 2) color = 0x00ff00;
-				
-				self.showPoint(geometry.vertices[i].x, geometry.vertices[i].y, geometry.vertices[i].z, color);
+				self.showPoint(geometry.vertices[i], colors[i]);
 			}
 			
-			let centroidOfBottomFace_x = (geometry.vertices[0].x + geometry.vertices[1].x + geometry.vertices[3].x) / 3;
-			let centroidOfBottomFace_y = (geometry.vertices[0].y + geometry.vertices[1].y + geometry.vertices[3].y) / 3;
-			let centroidOfBottomFace_z = (geometry.vertices[0].z + geometry.vertices[1].z + geometry.vertices[3].z) / 3;
-			self.showPoint(centroidOfBottomFace_x, centroidOfBottomFace_y, centroidOfBottomFace_z, 0x0000ff);
 			
+			self.drawLine(geometry.vertices[1], geometry.vertices[3]);
+			let midpoint = self.getMidpoint(geometry.vertices[1], geometry.vertices[3])
+			self.showPoint(midpoint, 0x0000ff);
 			
 			tetrahedron = new THREE.Mesh(geometry, material);
 			//tetrahedron.rotation.y = Math.PI / 4;
@@ -184,12 +194,60 @@ module.exports = function() {
 			// geometry.vertices.push(new THREE.Vector3( 0, 10, 0) );
 		},
 		
-		showPoint: function(x, y, z, color) {
+		showPoint: function(pt, color) {
+			color = color || 0xff0000;
 			let dotGeometry = new THREE.Geometry();
-			dotGeometry.vertices.push(new THREE.Vector3(x, y, z));
+			dotGeometry.vertices.push(new THREE.Vector3(pt.x, pt.y, pt.z));
 			let dotMaterial = new THREE.PointsMaterial({ size: 10, sizeAttenuation: false, color: color });
 			let dot = new THREE.Points(dotGeometry, dotMaterial);
 			scene.add(dot);
+		},
+		
+		drawLine: function(point1, point2) {
+			
+			let material = new THREE.LineBasicMaterial({ color: 0x0000ff });
+			let geometry = new THREE.Geometry();
+			geometry.vertices.push(new THREE.Vector3(point1.x, point1.y, point1.z));
+			geometry.vertices.push(new THREE.Vector3(point2.x, point2.y, point2.z));
+			
+			let line = new THREE.Line(geometry, material);
+			scene.add(line);
+		},
+		
+		distanceBetweenPoints: function(pt1, pt2) { // create point class?
+			
+			let squirt = Math.pow((pt2.x - pt1.x), 2) + Math.pow((pt2.y - pt1.y), 2) + Math.pow((pt2.z - pt1.z), 2);
+			return Math.sqrt(squirt);
+		},
+		
+		getMidpoint: function(pt1, pt2) {
+			
+			let midpoint = {};
+			
+			midpoint.x = (pt1.x + pt2.x) / 2;
+			midpoint.y = (pt1.y + pt2.y) / 2;
+			midpoint.z = (pt1.z + pt2.z) / 2;
+			
+			return midpoint;
+		},
+		
+		calculateCentroidLocation: function(geometryVertices) {
+			
+			let result = {};
+			let x = 0, y = 0, z = 0;
+			
+			for (let i = 0; i < geometryVertices.length; i++) {
+				
+				x += geometryVertices[i].x;
+				y += geometryVertices[i].y;
+				z += geometryVertices[i].z;
+			}
+			
+			x = x / 4;
+			y = y / 4;
+			z = z / 4;
+			result = { x: x, y: y, z: z};
+			return result;
 		},
 		
 		activateAxesHelper: function() {
