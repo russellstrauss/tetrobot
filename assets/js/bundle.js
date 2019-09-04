@@ -4,6 +4,14 @@
 module.exports = function () {
   var tetrahedron, renderer, scene, camera, controls;
   var stats = new Stats();
+  var wireframeMaterial = new THREE.MeshBasicMaterial({
+    wireframe: true,
+    color: 0x08CDFA
+  });
+  var shadeMaterial = new THREE.MeshPhongMaterial({
+    color: 0x08CDFA,
+    side: THREE.DoubleSide
+  });
   return {
     settings: {
       activateLightHelpers: false,
@@ -13,9 +21,21 @@ module.exports = function () {
       },
       tetrahedron: {
         size: 5
+      },
+      font: {
+        fontStyle: {
+          font: null,
+          size: 1,
+          height: 0,
+          curveSegments: 1
+        }
       }
     },
     init: function init() {
+      var self = this;
+      self.loadFont();
+    },
+    begin: function begin() {
       var self = this;
       self.setUpScene();
       self.addFloor();
@@ -32,8 +52,7 @@ module.exports = function () {
         requestAnimationFrame(animate);
         renderer.render(scene, camera);
         controls.update();
-        stats.update(); //tetrahedron.rotation.z += .001;
-        // tetrahedron.rotation.x += .001;
+        stats.update();
       };
 
       animate();
@@ -54,9 +73,9 @@ module.exports = function () {
 
       controls.dampingFactor = 0.05;
       controls.zoomSpeed = 6;
-      controls.screenSpacePanning = false;
-      controls.minDistance = 10;
-      controls.maxDistance = 500;
+      controls.enablePan = false;
+      controls.minDistance = 18;
+      controls.maxDistance = 100;
       controls.maxPolarAngle = Math.PI / 2;
     },
     enableStats: function enableStats() {
@@ -114,17 +133,13 @@ module.exports = function () {
         self.activateAxesHelper();
       }
     },
+    // Next steps: 
+    // Determine, or randomly assign L, R, O directions.
+    // Write method to easily calculate each triangle based on the L, R, O direction input.
+    // Future: Structure in a way that allows to loop through list of L, R, O inputs and cycle through them in sequence.
     addTetrahedron: function addTetrahedron() {
       var self = this;
-      var geometry = new THREE.TetrahedronGeometry(self.settings.tetrahedron.size, 0);
-      var wireframeMaterial = new THREE.MeshBasicMaterial({
-        wireframe: true,
-        color: 0x08CDFA
-      });
-      var shadeMaterial = new THREE.MeshPhongMaterial({
-        color: 0x08CDFA,
-        side: THREE.DoubleSide
-      }); // tetrahedron.rotation.z = Math.PI / 4;
+      var geometry = new THREE.TetrahedronGeometry(self.settings.tetrahedron.size, 0); // tetrahedron.rotation.z = Math.PI / 4;
 
       geometry.applyMatrix(new THREE.Matrix4().makeRotationAxis(new THREE.Vector3(1, 0, -1).normalize(), Math.atan(Math.sqrt(2)))); // Rotate to be flat on floor
 
@@ -153,19 +168,47 @@ module.exports = function () {
 
 
       var triangleGeometry = self.createTriangle(geometry.vertices[0], geometry.vertices[1], geometry.vertices[3]);
-      self.drawLine(geometry.vertices[1], geometry.vertices[3]);
       var midpoint = self.getMidpoint(geometry.vertices[1], geometry.vertices[3]);
-      self.showPoint(midpoint, 0x0000ff);
       var halfSideLength = self.getDistance(geometry.vertices[1], midpoint);
       var hypotenuse = self.getDistance(geometry.vertices[1], geometry.vertices[3]);
       var height = hypotenuse - halfSideLength; // pythagorean
-
-      var triangleMesh = new THREE.Mesh(triangleGeometry, wireframeMaterial);
-      scene.add(triangleMesh); //self.rotateOnAxis(triangleMesh, geometry.vertices[1], geometry.vertices[3], Math.PI);
+      //self.rotateOnAxis(triangleMesh, geometry.vertices[1], geometry.vertices[3], Math.PI);
 
       var tetrahedron = new THREE.Mesh(geometry, wireframeMaterial);
       scene.add(tetrahedron);
-      self.rotateOnAxis(triangleMesh, geometry.vertices[0], geometry.vertices[1], Math.PI); //self.rotateOnAxis(tetrahedron, geometry.vertices[0], geometry.vertices[1], Math.PI / 2);
+      var stepSequence = ['L', 'R'];
+      var currentStep = triangleGeometry; // debugger;
+      // for (let i = 0; i < stepSequence.length; i++) {
+      // 	currentStep = self.step(currentStep, stepSequence[i]);
+      // }
+
+      var step2 = self.step(triangleGeometry, 'R');
+      self.step(triangleGeometry, 'O');
+      self.step(step2, 'L');
+      self.labelDirections(triangleGeometry);
+    },
+    step: function step(triangleGeometry, direction) {
+      var self = this;
+      var triangleMesh = new THREE.Mesh(triangleGeometry, wireframeMaterial); //self.rotateOnAxis(triangleGeometry, triangleGeometry.vertices[0], triangleGeometry.vertices[1], Math.PI);
+
+      console.log(triangleMesh);
+
+      if (direction === 'L') {
+        self.rotateOnAxis(triangleMesh, triangleGeometry.vertices[0], triangleGeometry.vertices[1], Math.PI);
+      } else if (direction === 'R') {
+        self.rotateOnAxis(triangleMesh, triangleGeometry.vertices[1], triangleGeometry.vertices[2], Math.PI);
+      } else if (direction === 'O') {
+        self.rotateOnAxis(triangleMesh, triangleGeometry.vertices[2], triangleGeometry.vertices[0], Math.PI);
+      }
+
+      scene.add(triangleMesh); //triangleMesh.rotateOnAxis( new THREE.Vector3(), Math.PI / 3 );
+
+      triangleGeometry.verticesNeedUpdate = true;
+      self.showPoint(triangleMesh.geometry.vertices[0]);
+      self.showPoint(triangleMesh.geometry.vertices[1]);
+      self.showPoint(triangleMesh.geometry.vertices[2]);
+      var nextStep = triangleMesh.geometry.clone();
+      return nextStep;
     },
     rotateOnAxis: function rotateOnAxis(object, axisPt1, axisPt2, angle) {
       var self = this;
@@ -258,40 +301,72 @@ module.exports = function () {
       var self = this;
       var axesHelper = new THREE.AxesHelper(self.settings.axesHelper.axisLength);
       scene.add(axesHelper);
-      self.labelAxes();
+    },
+    // Input: triangle geometry of the tetrahedron face that is currently on the floor
+    labelDirections: function labelDirections(triangleGeometry) {
+      var self = this;
+      var midpoints = [];
+      midpoints.push(self.getMidpoint(triangleGeometry.vertices[0], triangleGeometry.vertices[1]));
+      midpoints.push(self.getMidpoint(triangleGeometry.vertices[1], triangleGeometry.vertices[2]));
+      midpoints.push(self.getMidpoint(triangleGeometry.vertices[2], triangleGeometry.vertices[0]));
+      var labels = ['L', 'R', 'O'];
+      var colors = [new THREE.Color('black'), new THREE.Color('black'), new THREE.Color('black')];
+
+      for (var i = 0; i < midpoints.length; i++) {
+        self.showPoint(midpoints[i], colors[i]);
+        self.labelPoint(midpoints[i], labels[i], new THREE.Color(0x000000));
+      }
     },
     labelAxes: function labelAxes() {
       var self = this;
-      var loader = new THREE.FontLoader();
-      loader.load('../assets/vendors/js/three.js/examples/fonts/helvetiker_regular.typeface.json', function (font) {
-        var fontStyle = {
-          font: font,
-          size: 1,
-          height: 0,
-          curveSegments: 1
-        };
-        var textGeometry = new THREE.TextGeometry('Y', fontStyle);
-        var textMaterial = new THREE.MeshBasicMaterial({
-          color: 0x00ff00
-        });
-        var mesh = new THREE.Mesh(textGeometry, textMaterial);
-        textGeometry.translate(0, self.settings.axesHelper.axisLength, 0);
-        scene.add(mesh);
-        textGeometry = new THREE.TextGeometry('X', fontStyle);
-        textMaterial = new THREE.MeshBasicMaterial({
-          color: 0xff0000
-        });
-        mesh = new THREE.Mesh(textGeometry, textMaterial);
-        textGeometry.translate(self.settings.axesHelper.axisLength, 0, 0);
-        scene.add(mesh);
-        textGeometry = new THREE.TextGeometry('Z', fontStyle);
-        textMaterial = new THREE.MeshBasicMaterial({
-          color: 0x0000ff
-        });
-        mesh = new THREE.Mesh(textGeometry, textMaterial);
-        textGeometry.translate(0, 0, self.settings.axesHelper.axisLength);
-        scene.add(mesh);
+      var textGeometry = new THREE.TextGeometry('Y', self.settings.font.fontStyle);
+      var textMaterial = new THREE.MeshBasicMaterial({
+        color: 0x00ff00
       });
+      var mesh = new THREE.Mesh(textGeometry, textMaterial);
+      textGeometry.translate(0, self.settings.axesHelper.axisLength, 0);
+      scene.add(mesh);
+      textGeometry = new THREE.TextGeometry('X', self.settings.font.fontStyle);
+      textMaterial = new THREE.MeshBasicMaterial({
+        color: 0xff0000
+      });
+      mesh = new THREE.Mesh(textGeometry, textMaterial);
+      textGeometry.translate(self.settings.axesHelper.axisLength, 0, 0);
+      scene.add(mesh);
+      textGeometry = new THREE.TextGeometry('Z', self.settings.font.fontStyle);
+      textMaterial = new THREE.MeshBasicMaterial({
+        color: 0x0000ff
+      });
+      mesh = new THREE.Mesh(textGeometry, textMaterial);
+      textGeometry.translate(0, 0, self.settings.axesHelper.axisLength);
+      scene.add(mesh);
+    },
+    loadFont: function loadFont() {
+      var self = this;
+      var loader = new THREE.FontLoader();
+      var fontPath = '';
+      if (window.location.hostname.indexOf('localhost') !== -1) fontPath = '../assets/vendors/js/three.js/examples/fonts/helvetiker_regular.typeface.json';else fontPath = 'http://jrstrauss.net/cg/tetrobot/assets/vendors/js/three.js/examples/fonts/helvetiker_regular.typeface.json';
+      loader.load(fontPath, function (font) {
+        self.settings.font.fontStyle.font = font;
+        self.begin();
+        if (self.settings.axesHelper.activateAxesHelper) self.labelAxes();
+      });
+    },
+
+    /* 	Inputs: 
+    *	pt - point in space to label, in the form of object with x, y, and z properties
+    *	label - text content for label
+    */
+    labelPoint: function labelPoint(pt, label, color) {
+      var self = this;
+      color = color || 0xff0000;
+      var textGeometry = new THREE.TextGeometry(label, self.settings.font.fontStyle);
+      var textMaterial = new THREE.MeshBasicMaterial({
+        color: color
+      });
+      var mesh = new THREE.Mesh(textGeometry, textMaterial);
+      textGeometry.translate(pt.x, pt.y, pt.z);
+      scene.add(mesh);
     }
   };
 };
