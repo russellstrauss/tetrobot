@@ -1,9 +1,16 @@
 module.exports = function() {
 	
 	var tetrahedron, renderer, scene, camera, controls;
+	var tetrahedronGeometry;
+	var triangleGeometry;
 	var stats = new Stats();
 	var wireframeMaterial = new THREE.MeshBasicMaterial({ wireframe: true, color: 0x08CDFA });
-	var shadeMaterial = new THREE.MeshPhongMaterial({ color: 0x08CDFA, side: THREE.DoubleSide });
+	var shadeMaterial = new THREE.MeshPhongMaterial({
+		color: 0x08CDFA,
+		side: THREE.DoubleSide,
+		opacity: .5,
+		transparent: true
+	});
 	
 	return {
 		
@@ -54,6 +61,8 @@ module.exports = function() {
 				renderer.render(scene, camera);
 				controls.update();
 				stats.update();
+				
+				//self.threeStepRotation(tetrahedronGeometry, new THREE.Vector3(triangleGeometry.vertices[1].x, triangleGeometry.vertices[1].y, triangleGeometry.vertices[1].z), new THREE.Vector3(triangleGeometry.vertices[2].x, triangleGeometry.vertices[2].y, triangleGeometry.vertices[2].z), 0);
 			};
 			
 			animate();
@@ -78,7 +87,7 @@ module.exports = function() {
 			controls.enableDamping = true; // an animation loop is required when either damping or auto-rotation are enabled
 			controls.dampingFactor = 0.05;
 			controls.zoomSpeed = 6;
-			controls.enablePan = false;
+			controls.enablePan = !utils.mobile();
 			controls.minDistance = 18;
 			controls.maxDistance = 100;
 			controls.maxPolarAngle = Math.PI / 2;
@@ -155,118 +164,168 @@ module.exports = function() {
 		
 		// Future: Structure in a way that allows to loop through list of L, R, O inputs and cycle through them in sequence.
 		
+		goLeft: function(tetrahedronGeometry, triangleGeometry) {
+			
+			let self = this;
+			let geometry = tetrahedronGeometry.clone();
+			self.threeStepRotation(geometry, triangleGeometry.vertices[1], triangleGeometry.vertices[0], 0);
+			
+			let mesh = new THREE.Mesh(geometry, wireframeMaterial);
+			scene.add(mesh);
+			
+			return geometry;
+		},
+		
+		goRight: function(tetrahedronGeometry, triangleGeometry) {
+			
+			let self = this;
+			let geometry = tetrahedronGeometry.clone();
+			self.threeStepRotation(geometry, triangleGeometry.vertices[0], triangleGeometry.vertices[1], 0);
+			
+			let mesh = new THREE.Mesh(geometry, wireframeMaterial);
+			scene.add(mesh);
+			
+			return geometry;
+		},
+		
+		goBack: function(tetrahedronGeometry, triangleGeometry) {
+			
+			let self = this;
+			let geometry = tetrahedronGeometry.clone();
+			self.threeStepRotation(geometry, triangleGeometry.vertices[2], triangleGeometry.vertices[0], Math.PI);
+			geometry.rotateX(Math.PI);
+			
+			let mesh = new THREE.Mesh(geometry, wireframeMaterial);
+			scene.add(mesh);
+			
+			return geometry;
+		},
+		
 		addTetrahedron: function() {
 			
 			let self = this;
-			let geometry = new THREE.TetrahedronGeometry(self.settings.tetrahedron.size, 0);
+			tetrahedronGeometry = new THREE.TetrahedronGeometry(self.settings.tetrahedron.size, 0);
+			tetrahedronGeometry.applyMatrix( new THREE.Matrix4().makeRotationAxis( new THREE.Vector3( 1, 0, -1 ).normalize(), Math.atan( Math.sqrt(2)) ) ); // Rotate to be flat on floor
+			tetrahedronGeometry.rotateY(Math.PI/4); // rotate to line up with x-axis
 			
+			let centroidOfBottomFace = self.calculateCentroidOfBottomFace(tetrahedronGeometry);
+			let tetrahedronHeight = self.getDistance(centroidOfBottomFace, tetrahedronGeometry.vertices[2]);
 			
+			tetrahedronGeometry.translate(0 , tetrahedronHeight / 4, 0);
+			triangleGeometry = self.getBottomFace(tetrahedronGeometry);
 			
+			let startingGeometry = tetrahedronGeometry.clone();
 			
-			
-			
-			// tetrahedron.rotation.z = Math.PI / 4;
-			geometry.applyMatrix( new THREE.Matrix4().makeRotationAxis( new THREE.Vector3( 1, 0, -1 ).normalize(), Math.atan( Math.sqrt(2)) ) ); // Rotate to be flat on floor
-			geometry.rotateY(Math.PI/4); // rotate to line up with x-axis
-			
-			//tetrahedron.position.y += self.settings.tetrahedron.size / 2;
-			
-			// Calculating centroid of a tetrahedron: https://www.youtube.com/watch?v=Infxzuqd_F4
-			// Next step: write method to calculate centroid location from 4 current vertices locations
-			let centroidOfBottomFace = {};
-			centroidOfBottomFace.x = (geometry.vertices[0].x + geometry.vertices[1].x + geometry.vertices[3].x) / 3;
-			centroidOfBottomFace.y = (geometry.vertices[0].y + geometry.vertices[1].y + geometry.vertices[3].y) / 3;
-			centroidOfBottomFace.z = (geometry.vertices[0].z + geometry.vertices[1].z + geometry.vertices[3].z) / 3;
-			//self.showPoint(centroidOfBottomFace_x, centroidOfBottomFace_y, centroidOfBottomFace_z, 0x0000ff);
-			let tetrahedronHeight = self.getDistance(centroidOfBottomFace, geometry.vertices[2]);
-			
-			// Calulate centroid
-			let centroid = self.calculateCentroidLocation(geometry.vertices);
-			//self.showPoint(centroid.x, centroid.y, centroid.z, 0x000000);
-			
-			// move vertices
-			for (let i = 0; i < geometry.vertices.length; i++) {
+			for (let i = 0; i < tetrahedronGeometry.vertices.length; i++) {
 				
 				let colors = 	[0xCE3611, 	0x00CE17, 	0x03BAEE, 	0x764E8C]; 
 				// 				[red, 		green, 		blue, 		purple]
 				
-				geometry.vertices[i].y += tetrahedronHeight / 4;
-				geometry.verticesNeedUpdate = true;
-				
-				self.showPoint(geometry.vertices[i], colors[i]);
+				tetrahedronGeometry.verticesNeedUpdate = true;
+				self.showPoint(tetrahedronGeometry.vertices[i], colors[i]);
 			}
 			
-			// Let's try to draw a triangle face
-			let triangleGeometry = self.createTriangle(geometry.vertices[0], geometry.vertices[1], geometry.vertices[3]);
-			
-			
-			
-			
-			
-			
-			
-			let midpoint = self.getMidpoint(geometry.vertices[1], geometry.vertices[3])
-			let halfSideLength = self.getDistance(geometry.vertices[1], midpoint);
-			let hypotenuse = self.getDistance(geometry.vertices[1], geometry.vertices[3]);
-			let height = hypotenuse - halfSideLength; // pythagorean
-			
-
-
-			
-			
-			
-			//self.rotateOnAxis(triangleMesh, geometry.vertices[1], geometry.vertices[3], Math.PI);
-			
-			let tetrahedron = new THREE.Mesh(geometry, wireframeMaterial);
+			tetrahedron = new THREE.Mesh(tetrahedronGeometry, shadeMaterial);
 			scene.add(tetrahedron);
 			
+			let ogTetrahedron = new THREE.Mesh(startingGeometry, wireframeMaterial);
+			scene.add(ogTetrahedron);
 			
-			let stepSequence = ['L', 'R'];
-			let currentStep = triangleGeometry;
-			// debugger;
-			// for (let i = 0; i < stepSequence.length; i++) {
-			// 	currentStep = self.step(currentStep, stepSequence[i]);
-			// }
+			let stepSequence = ['R'];
+			let currentStep = startingGeometry;
+
+			for (let i = 0; i < stepSequence.length; i++) {
+				currentStep = self.step(currentStep, stepSequence[i]);
+			}
 			
-			let step2 = self.step(triangleGeometry, 'R');
-			self.step(triangleGeometry, 'O');
-			self.step(step2, 'L');
 			self.labelDirections(triangleGeometry);
 		},
 		
-		step: function(triangleGeometry, direction) {
+		getBottomFace: function(tetrahedronGeometry) {
 			
 			let self = this;
-			let triangleMesh = new THREE.Mesh(triangleGeometry, wireframeMaterial);
+			let bottomFace = new THREE.Geometry();
 			
-			//self.rotateOnAxis(triangleGeometry, triangleGeometry.vertices[0], triangleGeometry.vertices[1], Math.PI);
+			tetrahedronGeometry.vertices.forEach(function(vertex) {
+				
+				if (vertex.y === 0) { // Relies on there being no rounding errors
+					
+					bottomFace.vertices.push(vertex);
+				}
+			});
 			
-			console.log(triangleMesh);
+			return bottomFace;
+		},
+		
+		step: function(tetrahedronGeometry, direction) {
+			
+			let self = this;
+			let bottomFace = self.getBottomFace(tetrahedronGeometry);
+			self.labelDirections(bottomFace);
+			
+			let nextStep;
 			
 			if (direction === 'L') {
-				self.rotateOnAxis(triangleMesh, triangleGeometry.vertices[0], triangleGeometry.vertices[1], Math.PI);
+				nextStep = self.goLeft(tetrahedronGeometry, bottomFace);
 			}
 			else if (direction === 'R') {
-				self.rotateOnAxis(triangleMesh, triangleGeometry.vertices[1], triangleGeometry.vertices[2], Math.PI);
+				nextStep = self.goRight(tetrahedronGeometry, bottomFace);
 			}
 			else if (direction === 'O') {
-				self.rotateOnAxis(triangleMesh, triangleGeometry.vertices[2], triangleGeometry.vertices[0], Math.PI);
+				nextStep = self.goBack(tetrahedronGeometry, bottomFace);
 			}
-			scene.add(triangleMesh);
 			
+			// let oppositeSide = {};
+			// oppositeSide.vertices = [];
+			// tetrahedronGeometry.vertices.forEach(function(tetVertex) {
+				
+			// 	bottomFace.vertices.forEach(function(triVertex) {
+					
+			// 		if (tetVertex.x === triVertex.x && tetVertex.y === triVertex.y && tetVertex.z === triVertex.z) { // relies on no rounding errors
+			// 			oppositeSide.vertices.push(triVertex);
+			// 		}
+			// 	});
+			// });
 			
+			// console.log(bottomFace);
+			// console.log(oppositeSide);
+			// self.labelDirections(bottomFace);
 			
+			// self.showPoints(oppositeSide, new THREE.Color('red'));
 			
-			//triangleMesh.rotateOnAxis( new THREE.Vector3(), Math.PI / 3 );
-			
-			triangleGeometry.verticesNeedUpdate = true;
-			
-			self.showPoint(triangleMesh.geometry.vertices[0]);
-			self.showPoint(triangleMesh.geometry.vertices[1]);
-			self.showPoint(triangleMesh.geometry.vertices[2]);
-			
-			let nextStep = triangleMesh.geometry.clone();
 			return nextStep;
+		},
+		
+		threeStepRotation: function(geometry, axisPt1, axisPt2, angle) {
+			
+			let self = this;
+			
+			// uncomment to visualize endpoints of roatation axis
+			// self.showPoint(axisPt1, new THREE.Color('red'));
+			// self.showPoint(axisPt2, new THREE.Color('red'));
+			
+			let v = new THREE.Vector3(axisPt2.x - axisPt1.x, axisPt2.y - axisPt1.y, axisPt2.z - axisPt1.z);
+			v.normalize();
+			let theta = Math.atan(v.x/v.z);
+			v.applyAxisAngle(new THREE.Vector3(0, 1, 0), -1 * theta);
+			let phi = Math.atan(v.y/Math.sqrt(Math.pow(v.x, 2) + Math.pow(v.z, 2)))
+			v.applyAxisAngle(new THREE.Vector3(1, 0, 0), phi);
+			v.applyAxisAngle(new THREE.Vector3(0, 0, 1), angle);
+			
+			geometry.translate(-1 * axisPt1.x, -1 * axisPt1.y, -1 * axisPt1.z);
+			geometry.rotateZ(angle);
+			geometry.rotateX(-1 * phi);
+			geometry.rotateY(theta);
+			geometry.translate(axisPt1.x, axisPt1.y, axisPt1.z);
+		},
+		
+		showPoints: function(geometry, color, opacity) {
+			
+			let self = this;
+			
+			for (let i = 0; i < geometry.vertices.length; i++) {
+				self.showPoint(geometry.vertices[i], color, opacity);
+			}
 		},
 		
 		rotateOnAxis: function(object, axisPt1, axisPt2, angle) {
@@ -280,11 +339,18 @@ module.exports = function() {
 			object.rotateOnAxis(rotationAxis, angle); // rotate the OBJECT
 		},
 		
-		showPoint: function(pt, color) {
+		showPoint: function(pt, color, opacity) {
 			color = color || 0xff0000;
+			opacity = opacity || 1;
 			let dotGeometry = new THREE.Geometry();
 			dotGeometry.vertices.push(new THREE.Vector3(pt.x, pt.y, pt.z));
-			let dotMaterial = new THREE.PointsMaterial({ size: 10, sizeAttenuation: false, color: color });
+			let dotMaterial = new THREE.PointsMaterial({ 
+				size: 10,
+				sizeAttenuation: false,
+				color: color,
+				opacity: opacity,
+				transparent: true
+			});
 			let dot = new THREE.Points(dotGeometry, dotMaterial);
 			scene.add(dot);
 		},
@@ -292,7 +358,7 @@ module.exports = function() {
 		showVector: function(vector, origin, color) {
 			
 			color = color || 0xff0000;
-			let arrowHelper = new THREE.ArrowHelper(vector, origin, origin.distanceTo(vector), color);
+			let arrowHelper = new THREE.ArrowHelper(vector, origin, vector.length(), color);
 			scene.add(arrowHelper);
 		},
 		
@@ -338,7 +404,17 @@ module.exports = function() {
 			return triangleGeometry;
 		},
 		
-		calculateCentroidLocation: function(geometryVertices) {
+		calculateCentroidOfBottomFace: function(tetrahedronGeometry) {
+			
+			let centroidOfBottomFace = {};
+			centroidOfBottomFace.x = (tetrahedronGeometry.vertices[0].x + tetrahedronGeometry.vertices[1].x + tetrahedronGeometry.vertices[3].x) / 3;
+			centroidOfBottomFace.y = (tetrahedronGeometry.vertices[0].y + tetrahedronGeometry.vertices[1].y + tetrahedronGeometry.vertices[3].y) / 3;
+			centroidOfBottomFace.z = (tetrahedronGeometry.vertices[0].z + tetrahedronGeometry.vertices[1].z + tetrahedronGeometry.vertices[3].z) / 3;
+			
+			return centroidOfBottomFace;
+		},
+		
+		calculateCentroidLocation: function(geometryVertices) { // Calculating centroid of a tetrahedron: https://www.youtube.com/watch?v=Infxzuqd_F4
 			
 			let result = {};
 			let x = 0, y = 0, z = 0;
@@ -373,7 +449,7 @@ module.exports = function() {
 			midpoints.push(self.getMidpoint(triangleGeometry.vertices[1], triangleGeometry.vertices[2]));
 			midpoints.push(self.getMidpoint(triangleGeometry.vertices[2], triangleGeometry.vertices[0]));
 			
-			let labels = ['L', 'R', 'O'];
+			let labels = ['R', 'L','O'];
 			
 			let colors = [new THREE.Color( 'black' ), new THREE.Color( 'black' ), new THREE.Color( 'black' )]; 
 			for (let i = 0; i < midpoints.length; i++) {
