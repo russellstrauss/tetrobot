@@ -16,6 +16,10 @@ module.exports = function () {
     opacity: .5,
     transparent: true
   });
+  var distinctColors = [new THREE.Color('#e6194b'), new THREE.Color('#3cb44b'), new THREE.Color('#ffe119'), new THREE.Color('#4363d8'), new THREE.Color('#f58231'), new THREE.Color('#911eb4'), new THREE.Color('#46f0f0'), new THREE.Color('#f032e6'), new THREE.Color('#bcf60c'), new THREE.Color('#fabebe'), new THREE.Color('#008080'), new THREE.Color('#e6beff'), new THREE.Color('#9a6324'), new THREE.Color('#fffac8'), new THREE.Color('#800000'), new THREE.Color('#aaffc3'), new THREE.Color('#808000'), new THREE.Color('#ffd8b1'), new THREE.Color('#000075'), new THREE.Color('#808080'), new THREE.Color('#ffffff'), new THREE.Color('#000000')];
+  var currentStep;
+  var nextStep, top, center; //testing
+
   return {
     settings: {
       activateLightHelpers: false,
@@ -33,11 +37,14 @@ module.exports = function () {
           height: 0,
           curveSegments: 1
         }
-      }
+      },
+      stepCount: 0,
+      messageDuration: 1000
     },
     init: function init() {
       var self = this;
       self.loadFont();
+      self.setUpButtons();
     },
     begin: function begin() {
       var self = this;
@@ -57,6 +64,9 @@ module.exports = function () {
         renderer.render(scene, camera);
         controls.update();
         stats.update();
+
+        if (nextStep) {//self.threeStepRotation(nextStep, center, top, .001);
+        }
       };
 
       animate();
@@ -145,6 +155,10 @@ module.exports = function () {
       var self = this;
       var geometry = tetrahedronGeometry.clone();
       self.threeStepRotation(geometry, triangleGeometry.vertices[1], triangleGeometry.vertices[0], 0);
+      var material = new THREE.MeshBasicMaterial({
+        wireframe: true,
+        color: distinctColors[self.settings.stepCount]
+      });
       var mesh = new THREE.Mesh(geometry, wireframeMaterial);
       scene.add(mesh);
       return geometry;
@@ -153,6 +167,10 @@ module.exports = function () {
       var self = this;
       var geometry = tetrahedronGeometry.clone();
       self.threeStepRotation(geometry, triangleGeometry.vertices[0], triangleGeometry.vertices[1], 0);
+      var material = new THREE.MeshBasicMaterial({
+        wireframe: true,
+        color: distinctColors[self.settings.stepCount]
+      });
       var mesh = new THREE.Mesh(geometry, wireframeMaterial);
       scene.add(mesh);
       return geometry;
@@ -162,6 +180,10 @@ module.exports = function () {
       var geometry = tetrahedronGeometry.clone();
       self.threeStepRotation(geometry, triangleGeometry.vertices[2], triangleGeometry.vertices[0], Math.PI);
       geometry.rotateX(Math.PI);
+      var material = new THREE.MeshBasicMaterial({
+        wireframe: true,
+        color: distinctColors[self.settings.stepCount]
+      });
       var mesh = new THREE.Mesh(geometry, wireframeMaterial);
       scene.add(mesh);
       return geometry;
@@ -190,8 +212,8 @@ module.exports = function () {
       scene.add(tetrahedron);
       var ogTetrahedron = new THREE.Mesh(startingGeometry, wireframeMaterial);
       scene.add(ogTetrahedron);
-      var stepSequence = ['O'];
-      var currentStep = startingGeometry;
+      var stepSequence = ['L', 'R', 'L', 'R', 'L', 'R'];
+      currentStep = startingGeometry;
 
       for (var _i = 0; _i < stepSequence.length; _i++) {
         currentStep = self.step(currentStep, stepSequence[_i]);
@@ -203,7 +225,8 @@ module.exports = function () {
       var self = this;
       var bottomFace = new THREE.Geometry();
       tetrahedronGeometry.vertices.forEach(function (vertex) {
-        if (self.roundHundreths(vertex.y) === 0) {
+        if (vertex.y === 0) {
+          // Relies on there being no rounding errors
           bottomFace.vertices.push(vertex);
         }
       });
@@ -211,39 +234,41 @@ module.exports = function () {
     },
     step: function step(tetrahedronGeometry, direction) {
       var self = this;
-      var bottomFace = self.getBottomFace(tetrahedronGeometry);
-      var nextStep;
+      var bottomFace = self.getBottomFace(tetrahedronGeometry); //self.labelDirections(bottomFace);
+      //let nextStep;
 
       if (direction === 'L') {
-        nextStep = self.goLeft(tetrahedronGeometry, bottomFace);
+        var copy = tetrahedronGeometry.clone();
+        nextStep = self.goLeft(copy, bottomFace);
       } else if (direction === 'R') {
-        nextStep = self.goRight(tetrahedronGeometry, bottomFace);
+        nextStep = self.goRight(tetrahedronGeometry, bottomFace); //nextStep.rotateY(2 * Math.PI / 3);
       } else if (direction === 'O') {
         nextStep = self.goBack(tetrahedronGeometry, bottomFace);
-      }
+      } // Calculate which edge of the tetrahedron shares the previous step--the 'O' edge--by comparing which two vertices coincide
+      // let oppositeSide = {};
+      // oppositeSide.vertices = [];
+      // tetrahedronGeometry.vertices.forEach(function(tetVertex) {
+      // 	bottomFace.vertices.forEach(function(triVertex) {
+      // 		if (tetVertex.x === triVertex.x && tetVertex.y === triVertex.y && tetVertex.z === triVertex.z) { // relies on no rounding errors
+      // 			oppositeSide.vertices.push(triVertex);
+      // 		}
+      // 	});
+      // });
+      // self.labelDirections(bottomFace);
 
-      var sharedEdge = {};
-      sharedEdge.vertices = [];
-      tetrahedronGeometry.vertices.forEach(function (vertex1, i) {
-        nextStep.vertices.forEach(function (vertex2, j) {
-          //self.labelPoint(vertex2, j.toString());
-          if (self.roundHundreths(vertex1.x) === self.roundHundreths(vertex2.x) && self.roundHundreths(vertex1.y) === self.roundHundreths(vertex2.y) && self.roundHundreths(vertex1.z) === self.roundHundreths(vertex2.z)) {
-            sharedEdge.vertices.push(vertex2);
-          }
-        });
-      });
-      self.labelDirections(self.getBottomFace(nextStep));
+
+      self.settings.stepCount += 1;
       return nextStep;
     },
     threeStepRotation: function threeStepRotation(geometry, axisPt1, axisPt2, angle) {
-      // Something is wrong with this math
       var self = this; // uncomment to visualize endpoints of roatation axis
       // self.showPoint(axisPt1, new THREE.Color('red'));
       // self.showPoint(axisPt2, new THREE.Color('red'));
 
       var v = new THREE.Vector3(axisPt2.x - axisPt1.x, axisPt2.y - axisPt1.y, axisPt2.z - axisPt1.z);
       v.normalize();
-      var theta = Math.atan(v.x / v.z);
+      var theta = Math.atan(v.x / v.z); // I think I have a problem using arctan here
+
       v.applyAxisAngle(new THREE.Vector3(0, 1, 0), -1 * theta);
       var phi = Math.atan(v.y / Math.sqrt(Math.pow(v.x, 2) + Math.pow(v.z, 2)));
       v.applyAxisAngle(new THREE.Vector3(1, 0, 0), phi);
@@ -430,8 +455,49 @@ module.exports = function () {
       textGeometry.translate(pt.x, pt.y, pt.z);
       scene.add(mesh);
     },
-    roundHundreths: function roundHundreths(num) {
-      return Math.round(num * 100) / 100;
+    getHighestVertex: function getHighestVertex(geometry) {
+      var self = this;
+      var highest = new THREE.Vector3();
+      geometry.vertices.forEach(function (vertex) {
+        if (vertex.y > highest.y) {
+          highest = vertex;
+        }
+      });
+      self.showPoint(highest);
+      return highest;
+    },
+    setUpButtons: function setUpButtons() {
+      var self = this;
+      var message = document.getElementById('message');
+      document.addEventListener('keyup', function (event) {
+        var L = 76;
+        var R = 82;
+        var O = 79;
+
+        if (event.keyCode === L) {
+          currentStep = self.step(currentStep, 'L');
+          message.textContent = 'Roll left';
+          setTimeout(function () {
+            message.textContent = '';
+          }, self.settings.messageDuration);
+        }
+
+        if (event.keyCode === R) {
+          currentStep = self.step(currentStep, 'R');
+          message.textContent = 'Roll right';
+          setTimeout(function () {
+            message.textContent = '';
+          }, self.settings.messageDuration);
+        }
+
+        if (event.keyCode === O) {
+          currentStep = self.step(currentStep, 'O');
+          message.textContent = 'Roll back';
+          setTimeout(function () {
+            message.textContent = '';
+          }, self.settings.messageDuration);
+        }
+      });
     }
   };
 };
