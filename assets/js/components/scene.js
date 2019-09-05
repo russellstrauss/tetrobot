@@ -61,8 +61,6 @@ module.exports = function() {
 				renderer.render(scene, camera);
 				controls.update();
 				stats.update();
-				
-				//self.threeStepRotation(tetrahedronGeometry, new THREE.Vector3(triangleGeometry.vertices[1].x, triangleGeometry.vertices[1].y, triangleGeometry.vertices[1].z), new THREE.Vector3(triangleGeometry.vertices[2].x, triangleGeometry.vertices[2].y, triangleGeometry.vertices[2].z), 0);
 			};
 			
 			animate();
@@ -231,7 +229,7 @@ module.exports = function() {
 			let ogTetrahedron = new THREE.Mesh(startingGeometry, wireframeMaterial);
 			scene.add(ogTetrahedron);
 			
-			let stepSequence = ['R', 'L', 'R'];
+			let stepSequence = ['O'];
 			let currentStep = startingGeometry;
 
 			for (let i = 0; i < stepSequence.length; i++) {
@@ -248,7 +246,7 @@ module.exports = function() {
 			
 			tetrahedronGeometry.vertices.forEach(function(vertex) {
 				
-				if (vertex.y === 0) { // Relies on there being no rounding errors
+				if (self.roundHundreths(vertex.y) === 0) {
 					
 					bottomFace.vertices.push(vertex);
 				}
@@ -261,7 +259,6 @@ module.exports = function() {
 			
 			let self = this;
 			let bottomFace = self.getBottomFace(tetrahedronGeometry);
-			self.labelDirections(bottomFace);
 			
 			let nextStep;
 			
@@ -281,6 +278,8 @@ module.exports = function() {
 				
 				nextStep.vertices.forEach(function(vertex2, j) {
 					
+					//self.labelPoint(vertex2, j.toString());
+					
 					if (self.roundHundreths(vertex1.x) === self.roundHundreths(vertex2.x) && 
 						self.roundHundreths(vertex1.y) === self.roundHundreths(vertex2.y) &&
 						self.roundHundreths(vertex1.z) === self.roundHundreths(vertex2.z))
@@ -290,11 +289,7 @@ module.exports = function() {
 				});
 			});
 			
-			// console.log(bottomFace);
-			// console.log(sharedEdge);
-			//self.labelDirections(bottomFace);
-			
-			self.showPoints(sharedEdge, new THREE.Color('black'));
+			self.labelDirections(self.getBottomFace(nextStep));
 			
 			return nextStep;
 		},

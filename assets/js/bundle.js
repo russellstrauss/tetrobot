@@ -56,7 +56,7 @@ module.exports = function () {
         requestAnimationFrame(animate);
         renderer.render(scene, camera);
         controls.update();
-        stats.update(); //self.threeStepRotation(tetrahedronGeometry, new THREE.Vector3(triangleGeometry.vertices[1].x, triangleGeometry.vertices[1].y, triangleGeometry.vertices[1].z), new THREE.Vector3(triangleGeometry.vertices[2].x, triangleGeometry.vertices[2].y, triangleGeometry.vertices[2].z), 0);
+        stats.update();
       };
 
       animate();
@@ -190,7 +190,7 @@ module.exports = function () {
       scene.add(tetrahedron);
       var ogTetrahedron = new THREE.Mesh(startingGeometry, wireframeMaterial);
       scene.add(ogTetrahedron);
-      var stepSequence = ['R', 'L', 'R'];
+      var stepSequence = ['O'];
       var currentStep = startingGeometry;
 
       for (var _i = 0; _i < stepSequence.length; _i++) {
@@ -203,8 +203,7 @@ module.exports = function () {
       var self = this;
       var bottomFace = new THREE.Geometry();
       tetrahedronGeometry.vertices.forEach(function (vertex) {
-        if (vertex.y === 0) {
-          // Relies on there being no rounding errors
+        if (self.roundHundreths(vertex.y) === 0) {
           bottomFace.vertices.push(vertex);
         }
       });
@@ -213,7 +212,6 @@ module.exports = function () {
     step: function step(tetrahedronGeometry, direction) {
       var self = this;
       var bottomFace = self.getBottomFace(tetrahedronGeometry);
-      self.labelDirections(bottomFace);
       var nextStep;
 
       if (direction === 'L') {
@@ -228,15 +226,13 @@ module.exports = function () {
       sharedEdge.vertices = [];
       tetrahedronGeometry.vertices.forEach(function (vertex1, i) {
         nextStep.vertices.forEach(function (vertex2, j) {
+          //self.labelPoint(vertex2, j.toString());
           if (self.roundHundreths(vertex1.x) === self.roundHundreths(vertex2.x) && self.roundHundreths(vertex1.y) === self.roundHundreths(vertex2.y) && self.roundHundreths(vertex1.z) === self.roundHundreths(vertex2.z)) {
             sharedEdge.vertices.push(vertex2);
           }
         });
-      }); // console.log(bottomFace);
-      // console.log(sharedEdge);
-      //self.labelDirections(bottomFace);
-
-      self.showPoints(sharedEdge, new THREE.Color('black'));
+      });
+      self.labelDirections(self.getBottomFace(nextStep));
       return nextStep;
     },
     threeStepRotation: function threeStepRotation(geometry, axisPt1, axisPt2, angle) {
