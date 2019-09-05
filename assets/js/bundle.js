@@ -18,7 +18,7 @@ module.exports = function () {
   });
   var distinctColors = [new THREE.Color('#e6194b'), new THREE.Color('#3cb44b'), new THREE.Color('#ffe119'), new THREE.Color('#4363d8'), new THREE.Color('#f58231'), new THREE.Color('#911eb4'), new THREE.Color('#46f0f0'), new THREE.Color('#f032e6'), new THREE.Color('#bcf60c'), new THREE.Color('#fabebe'), new THREE.Color('#008080'), new THREE.Color('#e6beff'), new THREE.Color('#9a6324'), new THREE.Color('#fffac8'), new THREE.Color('#800000'), new THREE.Color('#aaffc3'), new THREE.Color('#808000'), new THREE.Color('#ffd8b1'), new THREE.Color('#000075'), new THREE.Color('#808080'), new THREE.Color('#ffffff'), new THREE.Color('#000000')];
   var currentStep;
-  var nextStep, top, center; //testing
+  var nextStep, top, center; // testing
 
   return {
     settings: {
@@ -31,6 +31,7 @@ module.exports = function () {
         size: 5
       },
       font: {
+        enable: true,
         fontStyle: {
           font: null,
           size: 1,
@@ -39,7 +40,7 @@ module.exports = function () {
         }
       },
       stepCount: 0,
-      messageDuration: 1000
+      messageDuration: 2000
     },
     init: function init() {
       var self = this;
@@ -64,9 +65,6 @@ module.exports = function () {
         renderer.render(scene, camera);
         controls.update();
         stats.update();
-
-        if (nextStep) {//self.threeStepRotation(nextStep, center, top, .001);
-        }
       };
 
       animate();
@@ -147,10 +145,6 @@ module.exports = function () {
         self.activateAxesHelper();
       }
     },
-    // Next steps: 
-    // Determine, or randomly assign L, R, O directions.
-    // Write method to easily calculate each triangle based on the L, R, O direction input.
-    // Future: Structure in a way that allows to loop through list of L, R, O inputs and cycle through them in sequence.
     goLeft: function goLeft(tetrahedronGeometry, triangleGeometry) {
       var self = this;
       var geometry = tetrahedronGeometry.clone();
@@ -212,13 +206,7 @@ module.exports = function () {
       scene.add(tetrahedron);
       var ogTetrahedron = new THREE.Mesh(startingGeometry, wireframeMaterial);
       scene.add(ogTetrahedron);
-      var stepSequence = ['L', 'R', 'L', 'R', 'L', 'R'];
       currentStep = startingGeometry;
-
-      for (var _i = 0; _i < stepSequence.length; _i++) {
-        currentStep = self.step(currentStep, stepSequence[_i]);
-      }
-
       self.labelDirections(triangleGeometry);
     },
     getBottomFace: function getBottomFace(tetrahedronGeometry) {
@@ -234,14 +222,13 @@ module.exports = function () {
     },
     step: function step(tetrahedronGeometry, direction) {
       var self = this;
-      var bottomFace = self.getBottomFace(tetrahedronGeometry); //self.labelDirections(bottomFace);
-      //let nextStep;
+      var bottomFace = self.getBottomFace(tetrahedronGeometry);
 
       if (direction === 'L') {
         var copy = tetrahedronGeometry.clone();
         nextStep = self.goLeft(copy, bottomFace);
       } else if (direction === 'R') {
-        nextStep = self.goRight(tetrahedronGeometry, bottomFace); //nextStep.rotateY(2 * Math.PI / 3);
+        nextStep = self.goRight(tetrahedronGeometry, bottomFace);
       } else if (direction === 'O') {
         nextStep = self.goBack(tetrahedronGeometry, bottomFace);
       } // Calculate which edge of the tetrahedron shares the previous step--the 'O' edge--by comparing which two vertices coincide
@@ -249,7 +236,7 @@ module.exports = function () {
       // oppositeSide.vertices = [];
       // tetrahedronGeometry.vertices.forEach(function(tetVertex) {
       // 	bottomFace.vertices.forEach(function(triVertex) {
-      // 		if (tetVertex.x === triVertex.x && tetVertex.y === triVertex.y && tetVertex.z === triVertex.z) { // relies on no rounding errors
+      // 		if (tetVertex.x === triVertex.x && tetVertex.y === triVertex.y && tetVertex.z === triVertex.z) { // WARNING will break with rounding errors
       // 			oppositeSide.vertices.push(triVertex);
       // 		}
       // 	});
@@ -261,7 +248,7 @@ module.exports = function () {
       return nextStep;
     },
     threeStepRotation: function threeStepRotation(geometry, axisPt1, axisPt2, angle) {
-      var self = this; // uncomment to visualize endpoints of roatation axis
+      var self = this; // uncomment to visualize endpoints of rotation axis
       // self.showPoint(axisPt1, new THREE.Color('red'));
       // self.showPoint(axisPt2, new THREE.Color('red'));
 
@@ -285,19 +272,6 @@ module.exports = function () {
       for (var i = 0; i < geometry.vertices.length; i++) {
         self.showPoint(geometry.vertices[i], color, opacity);
       }
-    },
-    rotateOnAxis: function rotateOnAxis(object, axisPt1, axisPt2, angle) {
-      var self = this;
-      var pivotPoint = self.getMidpoint(axisPt1, axisPt2);
-      var rotationAxis = self.createVector(axisPt1, axisPt2);
-      rotationAxis.normalize();
-      object.position.sub(pivotPoint); // remove the offset
-
-      object.position.applyAxisAngle(rotationAxis, angle); // rotate the POSITION
-
-      object.position.add(pivotPoint); // re-add the offset
-
-      object.rotateOnAxis(rotationAxis, angle); // rotate the OBJECT
     },
     showPoint: function showPoint(pt, color, opacity) {
       color = color || 0xff0000;
@@ -389,7 +363,7 @@ module.exports = function () {
       var axesHelper = new THREE.AxesHelper(self.settings.axesHelper.axisLength);
       scene.add(axesHelper);
     },
-    // Input: triangle geometry of the tetrahedron face that is currently on the floor
+    // Input: triangle geometry of the tetrahedron face that is currently on the floor, then will label midpoint directions for left, right, and opposite
     labelDirections: function labelDirections(triangleGeometry) {
       var self = this;
       var midpoints = [];
@@ -406,54 +380,67 @@ module.exports = function () {
     },
     labelAxes: function labelAxes() {
       var self = this;
-      var textGeometry = new THREE.TextGeometry('Y', self.settings.font.fontStyle);
-      var textMaterial = new THREE.MeshBasicMaterial({
-        color: 0x00ff00
-      });
-      var mesh = new THREE.Mesh(textGeometry, textMaterial);
-      textGeometry.translate(0, self.settings.axesHelper.axisLength, 0);
-      scene.add(mesh);
-      textGeometry = new THREE.TextGeometry('X', self.settings.font.fontStyle);
-      textMaterial = new THREE.MeshBasicMaterial({
-        color: 0xff0000
-      });
-      mesh = new THREE.Mesh(textGeometry, textMaterial);
-      textGeometry.translate(self.settings.axesHelper.axisLength, 0, 0);
-      scene.add(mesh);
-      textGeometry = new THREE.TextGeometry('Z', self.settings.font.fontStyle);
-      textMaterial = new THREE.MeshBasicMaterial({
-        color: 0x0000ff
-      });
-      mesh = new THREE.Mesh(textGeometry, textMaterial);
-      textGeometry.translate(0, 0, self.settings.axesHelper.axisLength);
-      scene.add(mesh);
+
+      if (self.settings.font.enable) {
+        var textGeometry = new THREE.TextGeometry('Y', self.settings.font.fontStyle);
+        var textMaterial = new THREE.MeshBasicMaterial({
+          color: 0x00ff00
+        });
+        var mesh = new THREE.Mesh(textGeometry, textMaterial);
+        textGeometry.translate(0, self.settings.axesHelper.axisLength, 0);
+        scene.add(mesh);
+        textGeometry = new THREE.TextGeometry('X', self.settings.font.fontStyle);
+        textMaterial = new THREE.MeshBasicMaterial({
+          color: 0xff0000
+        });
+        mesh = new THREE.Mesh(textGeometry, textMaterial);
+        textGeometry.translate(self.settings.axesHelper.axisLength, 0, 0);
+        scene.add(mesh);
+        textGeometry = new THREE.TextGeometry('Z', self.settings.font.fontStyle);
+        textMaterial = new THREE.MeshBasicMaterial({
+          color: 0x0000ff
+        });
+        mesh = new THREE.Mesh(textGeometry, textMaterial);
+        textGeometry.translate(0, 0, self.settings.axesHelper.axisLength);
+        scene.add(mesh);
+      }
     },
     loadFont: function loadFont() {
       var self = this;
       var loader = new THREE.FontLoader();
       var fontPath = '';
-      if (window.location.hostname.indexOf('localhost') !== -1) fontPath = '../assets/vendors/js/three.js/examples/fonts/helvetiker_regular.typeface.json';else fontPath = 'http://jrstrauss.net/cg/tetrobot/assets/vendors/js/three.js/examples/fonts/helvetiker_regular.typeface.json';
+      fontPath = 'assets/vendors/js/three.js/examples/fonts/helvetiker_regular.typeface.json';
       loader.load(fontPath, function (font) {
+        // success event
+        console.log('Fonts loaded successfully.');
         self.settings.font.fontStyle.font = font;
         self.begin();
         if (self.settings.axesHelper.activateAxesHelper) self.labelAxes();
+      }, function (event) {
+        // in progress event.
+        console.log('Attempting to load fonts.');
+      }, function (event) {
+        // error event
+        console.log('Error loading fonts. Webserver required due to CORS policy.');
+        self.settings.font.enable = false;
+        self.begin();
       });
     },
 
-    /* 	Inputs: 
-    *	pt - point in space to label, in the form of object with x, y, and z properties
-    *	label - text content for label
-    */
+    /* 	Inputs: pt - point in space to label, in the form of object with x, y, and z properties; label - text content for label; color - optional */
     labelPoint: function labelPoint(pt, label, color) {
       var self = this;
-      color = color || 0xff0000;
-      var textGeometry = new THREE.TextGeometry(label, self.settings.font.fontStyle);
-      var textMaterial = new THREE.MeshBasicMaterial({
-        color: color
-      });
-      var mesh = new THREE.Mesh(textGeometry, textMaterial);
-      textGeometry.translate(pt.x, pt.y, pt.z);
-      scene.add(mesh);
+
+      if (self.settings.font.enable) {
+        color = color || 0xff0000;
+        var textGeometry = new THREE.TextGeometry(label, self.settings.font.fontStyle);
+        var textMaterial = new THREE.MeshBasicMaterial({
+          color: color
+        });
+        var mesh = new THREE.Mesh(textGeometry, textMaterial);
+        textGeometry.translate(pt.x, pt.y, pt.z);
+        scene.add(mesh);
+      }
     },
     getHighestVertex: function getHighestVertex(geometry) {
       var self = this;

@@ -13,7 +13,7 @@ module.exports = function() {
 	});
 	var distinctColors = [new THREE.Color('#e6194b'), new THREE.Color('#3cb44b'), new THREE.Color('#ffe119'), new THREE.Color('#4363d8'), new THREE.Color('#f58231'), new THREE.Color('#911eb4'), new THREE.Color('#46f0f0'), new THREE.Color('#f032e6'), new THREE.Color('#bcf60c'), new THREE.Color('#fabebe'), new THREE.Color('#008080'), new THREE.Color('#e6beff'), new THREE.Color('#9a6324'), new THREE.Color('#fffac8'), new THREE.Color('#800000'), new THREE.Color('#aaffc3'), new THREE.Color('#808000'), new THREE.Color('#ffd8b1'), new THREE.Color('#000075'), new THREE.Color('#808080'), new THREE.Color('#ffffff'), new THREE.Color('#000000')];
 	var currentStep;
-	var nextStep, top, center; //testing
+	var nextStep, top, center; // testing
 	
 	return {
 		
@@ -27,6 +27,7 @@ module.exports = function() {
 				size: 5
 			},
 			font: {
+				enable: true,
 				fontStyle: {
 					font: null,
 					size: 1,
@@ -35,7 +36,7 @@ module.exports = function() {
 				}
 			},
 			stepCount: 0,
-			messageDuration: 1000
+			messageDuration: 2000
 		},
 		
 		init: function() {
@@ -67,10 +68,6 @@ module.exports = function() {
 				renderer.render(scene, camera);
 				controls.update();
 				stats.update();
-				
-				if (nextStep) {
-					//self.threeStepRotation(nextStep, center, top, .001);
-				}
 			};
 			
 			animate();
@@ -166,12 +163,6 @@ module.exports = function() {
 			}
 		},
 		
-		// Next steps: 
-		// Determine, or randomly assign L, R, O directions.
-		// Write method to easily calculate each triangle based on the L, R, O direction input.
-		
-		// Future: Structure in a way that allows to loop through list of L, R, O inputs and cycle through them in sequence.
-		
 		goLeft: function(tetrahedronGeometry, triangleGeometry) {
 			
 			let self = this;
@@ -243,12 +234,7 @@ module.exports = function() {
 			let ogTetrahedron = new THREE.Mesh(startingGeometry, wireframeMaterial);
 			scene.add(ogTetrahedron);
 			
-			let stepSequence = ['L', 'R', 'L', 'R', 'L', 'R'];
 			currentStep = startingGeometry;
-
-			for (let i = 0; i < stepSequence.length; i++) {
-				currentStep = self.step(currentStep, stepSequence[i]);
-			}
 			
 			self.labelDirections(triangleGeometry);
 		},
@@ -273,9 +259,6 @@ module.exports = function() {
 			
 			let self = this;
 			let bottomFace = self.getBottomFace(tetrahedronGeometry);
-			//self.labelDirections(bottomFace);
-			
-			//let nextStep;
 			
 			if (direction === 'L') {
 				let copy = tetrahedronGeometry.clone();
@@ -283,7 +266,6 @@ module.exports = function() {
 			}
 			else if (direction === 'R') {
 				nextStep = self.goRight(tetrahedronGeometry, bottomFace);
-				//nextStep.rotateY(2 * Math.PI / 3);
 			}
 			else if (direction === 'O') {
 				nextStep = self.goBack(tetrahedronGeometry, bottomFace);
@@ -296,7 +278,7 @@ module.exports = function() {
 				
 			// 	bottomFace.vertices.forEach(function(triVertex) {
 					
-			// 		if (tetVertex.x === triVertex.x && tetVertex.y === triVertex.y && tetVertex.z === triVertex.z) { // relies on no rounding errors
+			// 		if (tetVertex.x === triVertex.x && tetVertex.y === triVertex.y && tetVertex.z === triVertex.z) { // WARNING will break with rounding errors
 			// 			oppositeSide.vertices.push(triVertex);
 			// 		}
 			// 	});
@@ -311,7 +293,7 @@ module.exports = function() {
 			
 			let self = this;
 			
-			// uncomment to visualize endpoints of roatation axis
+			// uncomment to visualize endpoints of rotation axis
 			// self.showPoint(axisPt1, new THREE.Color('red'));
 			// self.showPoint(axisPt2, new THREE.Color('red'));
 			
@@ -337,17 +319,6 @@ module.exports = function() {
 			for (let i = 0; i < geometry.vertices.length; i++) {
 				self.showPoint(geometry.vertices[i], color, opacity);
 			}
-		},
-		
-		rotateOnAxis: function(object, axisPt1, axisPt2, angle) {
-			let self = this;
-			let pivotPoint = self.getMidpoint(axisPt1, axisPt2);
-			let rotationAxis = self.createVector(axisPt1, axisPt2);
-			rotationAxis.normalize();
-			object.position.sub(pivotPoint); // remove the offset
-			object.position.applyAxisAngle(rotationAxis, angle); // rotate the POSITION
-			object.position.add(pivotPoint); // re-add the offset
-			object.rotateOnAxis(rotationAxis, angle); // rotate the OBJECT
 		},
 		
 		showPoint: function(pt, color, opacity) {
@@ -451,7 +422,7 @@ module.exports = function() {
 			scene.add(axesHelper);
 		},
 		
-		// Input: triangle geometry of the tetrahedron face that is currently on the floor
+		// Input: triangle geometry of the tetrahedron face that is currently on the floor, then will label midpoint directions for left, right, and opposite
 		labelDirections: function(triangleGeometry) {
 			
 			let self = this;
@@ -473,23 +444,25 @@ module.exports = function() {
 		labelAxes: function() {
 			
 			let self = this;
-			let textGeometry = new THREE.TextGeometry('Y', self.settings.font.fontStyle);
-			let textMaterial = new THREE.MeshBasicMaterial({ color: 0x00ff00 });
-			let mesh = new THREE.Mesh(textGeometry, textMaterial);
-			textGeometry.translate(0, self.settings.axesHelper.axisLength, 0);
-			scene.add(mesh);
-			
-			textGeometry = new THREE.TextGeometry('X', self.settings.font.fontStyle);
-			textMaterial = new THREE.MeshBasicMaterial({ color: 0xff0000 });
-			mesh = new THREE.Mesh(textGeometry, textMaterial);
-			textGeometry.translate(self.settings.axesHelper.axisLength, 0, 0);
-			scene.add(mesh);
-			
-			textGeometry = new THREE.TextGeometry('Z', self.settings.font.fontStyle);
-			textMaterial = new THREE.MeshBasicMaterial({ color: 0x0000ff });
-			mesh = new THREE.Mesh(textGeometry, textMaterial);
-			textGeometry.translate(0, 0, self.settings.axesHelper.axisLength);
-			scene.add(mesh);
+			if (self.settings.font.enable) {
+				let textGeometry = new THREE.TextGeometry('Y', self.settings.font.fontStyle);
+				let textMaterial = new THREE.MeshBasicMaterial({ color: 0x00ff00 });
+				let mesh = new THREE.Mesh(textGeometry, textMaterial);
+				textGeometry.translate(0, self.settings.axesHelper.axisLength, 0);
+				scene.add(mesh);
+				
+				textGeometry = new THREE.TextGeometry('X', self.settings.font.fontStyle);
+				textMaterial = new THREE.MeshBasicMaterial({ color: 0xff0000 });
+				mesh = new THREE.Mesh(textGeometry, textMaterial);
+				textGeometry.translate(self.settings.axesHelper.axisLength, 0, 0);
+				scene.add(mesh);
+				
+				textGeometry = new THREE.TextGeometry('Z', self.settings.font.fontStyle);
+				textMaterial = new THREE.MeshBasicMaterial({ color: 0x0000ff });
+				mesh = new THREE.Mesh(textGeometry, textMaterial);
+				textGeometry.translate(0, 0, self.settings.axesHelper.axisLength);
+				scene.add(mesh);
+			}
 		},
 		
 		loadFont: function() {
@@ -497,30 +470,37 @@ module.exports = function() {
 			let self = this;
 			let loader = new THREE.FontLoader();
 			let fontPath = '';
-			if (window.location.hostname.indexOf('localhost') !== -1) fontPath = '../assets/vendors/js/three.js/examples/fonts/helvetiker_regular.typeface.json';
-			else fontPath = 'http://jrstrauss.net/cg/tetrobot/assets/vendors/js/three.js/examples/fonts/helvetiker_regular.typeface.json';
-			loader.load(fontPath, function(font) {
+			fontPath = 'assets/vendors/js/three.js/examples/fonts/helvetiker_regular.typeface.json';
+
+			loader.load(fontPath, function(font) { // success event
 				
+				console.log('Fonts loaded successfully.');
 				self.settings.font.fontStyle.font = font;
 				
 				self.begin();
 				if (self.settings.axesHelper.activateAxesHelper) self.labelAxes();
+			}, function(event) { // in progress event.
+				console.log('Attempting to load fonts.')
+			}, function(event) { // error event
+				
+				console.log('Error loading fonts. Webserver required due to CORS policy.');
+				self.settings.font.enable = false;
+				self.begin();
 			});
 		},
 		
-		/* 	Inputs: 
-		*	pt - point in space to label, in the form of object with x, y, and z properties
-		*	label - text content for label
-		*/
+		/* 	Inputs: pt - point in space to label, in the form of object with x, y, and z properties; label - text content for label; color - optional */
 		labelPoint: function(pt, label, color) {
 			
 			let self = this;
-			color = color || 0xff0000;
-			let textGeometry = new THREE.TextGeometry(label, self.settings.font.fontStyle);
-			let textMaterial = new THREE.MeshBasicMaterial({ color: color });
-			let mesh = new THREE.Mesh(textGeometry, textMaterial);
-			textGeometry.translate(pt.x, pt.y, pt.z);
-			scene.add(mesh);
+			if (self.settings.font.enable) {
+				color = color || 0xff0000;
+				let textGeometry = new THREE.TextGeometry(label, self.settings.font.fontStyle);
+				let textMaterial = new THREE.MeshBasicMaterial({ color: color });
+				let mesh = new THREE.Mesh(textGeometry, textMaterial);
+				textGeometry.translate(pt.x, pt.y, pt.z);
+				scene.add(mesh);
+			}
 		},
 		
 		getHighestVertex: function(geometry) {
