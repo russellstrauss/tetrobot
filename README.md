@@ -1,6 +1,6 @@
 # Tetrobot Phase 1
 
-One Paragraph of project description goes here
+A tetrahedral robot virtual simulation.
 
 ## Authors
 

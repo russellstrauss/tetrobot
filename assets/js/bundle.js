@@ -16,6 +16,12 @@ module.exports = function () {
     opacity: .5,
     transparent: true
   });
+  var degradingMaterial = new THREE.MeshBasicMaterial({
+    wireframe: true,
+    color: 0x08CDFA,
+    opacity: 1,
+    transparent: true
+  });
   var distinctColors = [new THREE.Color('#e6194b'), new THREE.Color('#3cb44b'), new THREE.Color('#ffe119'), new THREE.Color('#4363d8'), new THREE.Color('#f58231'), new THREE.Color('#911eb4'), new THREE.Color('#46f0f0'), new THREE.Color('#f032e6'), new THREE.Color('#bcf60c'), new THREE.Color('#fabebe'), new THREE.Color('#008080'), new THREE.Color('#e6beff'), new THREE.Color('#9a6324'), new THREE.Color('#fffac8'), new THREE.Color('#800000'), new THREE.Color('#aaffc3'), new THREE.Color('#808000'), new THREE.Color('#ffd8b1'), new THREE.Color('#000075'), new THREE.Color('#808080'), new THREE.Color('#ffffff'), new THREE.Color('#000000')];
   var currentStep;
   var nextStep, top, center; // testing
@@ -254,7 +260,7 @@ module.exports = function () {
 
       var v = new THREE.Vector3(axisPt2.x - axisPt1.x, axisPt2.y - axisPt1.y, axisPt2.z - axisPt1.z);
       v.normalize();
-      var theta = Math.atan(v.x / v.z); // I think I have a problem using arctan here
+      var theta = Math.atan(v.x / v.z); // is there a problem using arctan here? theta does not have a zero value when passing in a 0-angle of rotation
 
       v.applyAxisAngle(new THREE.Vector3(0, 1, 0), -1 * theta);
       var phi = Math.atan(v.y / Math.sqrt(Math.pow(v.x, 2) + Math.pow(v.z, 2)));

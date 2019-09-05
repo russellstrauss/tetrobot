@@ -299,7 +299,7 @@ module.exports = function() {
 			
 			let v = new THREE.Vector3(axisPt2.x - axisPt1.x, axisPt2.y - axisPt1.y, axisPt2.z - axisPt1.z);
 			v.normalize();
-			let theta = Math.atan(v.x/v.z); // I think I have a problem using arctan here
+			let theta = Math.atan(v.x/v.z); // is there a problem using arctan here? theta does not have a zero value when passing in a 0-angle of rotation
 			v.applyAxisAngle(new THREE.Vector3(0, 1, 0), -1 * theta);
 			let phi = Math.atan(v.y/Math.sqrt(Math.pow(v.x, 2) + Math.pow(v.z, 2)))
 			v.applyAxisAngle(new THREE.Vector3(1, 0, 0), phi);
