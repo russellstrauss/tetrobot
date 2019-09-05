@@ -105,10 +105,14 @@
 			
 			isInteger: function(number) {
 				return number % 1 === 0;
+			},
+			
+			rotate: function(array) {
+				array.push(array.shift());
+				return array;
 			}
 		}
 	})();
-
+	
 	module.exports = window.utils;
-
 })();

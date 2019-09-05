@@ -231,7 +231,7 @@ module.exports = function() {
 			let ogTetrahedron = new THREE.Mesh(startingGeometry, wireframeMaterial);
 			scene.add(ogTetrahedron);
 			
-			let stepSequence = ['R'];
+			let stepSequence = ['R', 'L', 'R'];
 			let currentStep = startingGeometry;
 
 			for (let i = 0; i < stepSequence.length; i++) {
@@ -275,28 +275,31 @@ module.exports = function() {
 				nextStep = self.goBack(tetrahedronGeometry, bottomFace);
 			}
 			
-			// let oppositeSide = {};
-			// oppositeSide.vertices = [];
-			// tetrahedronGeometry.vertices.forEach(function(tetVertex) {
+			let sharedEdge = {};
+			sharedEdge.vertices = [];
+			tetrahedronGeometry.vertices.forEach(function(vertex1, i) {
 				
-			// 	bottomFace.vertices.forEach(function(triVertex) {
+				nextStep.vertices.forEach(function(vertex2, j) {
 					
-			// 		if (tetVertex.x === triVertex.x && tetVertex.y === triVertex.y && tetVertex.z === triVertex.z) { // relies on no rounding errors
-			// 			oppositeSide.vertices.push(triVertex);
-			// 		}
-			// 	});
-			// });
+					if (self.roundHundreths(vertex1.x) === self.roundHundreths(vertex2.x) && 
+						self.roundHundreths(vertex1.y) === self.roundHundreths(vertex2.y) &&
+						self.roundHundreths(vertex1.z) === self.roundHundreths(vertex2.z))
+					{
+						sharedEdge.vertices.push(vertex2);
+					}
+				});
+			});
 			
 			// console.log(bottomFace);
-			// console.log(oppositeSide);
-			// self.labelDirections(bottomFace);
+			// console.log(sharedEdge);
+			//self.labelDirections(bottomFace);
 			
-			// self.showPoints(oppositeSide, new THREE.Color('red'));
+			self.showPoints(sharedEdge, new THREE.Color('black'));
 			
 			return nextStep;
 		},
 		
-		threeStepRotation: function(geometry, axisPt1, axisPt2, angle) {
+		threeStepRotation: function(geometry, axisPt1, axisPt2, angle) { // Something is wrong with this math
 			
 			let self = this;
 			
@@ -510,6 +513,10 @@ module.exports = function() {
 			let mesh = new THREE.Mesh(textGeometry, textMaterial);
 			textGeometry.translate(pt.x, pt.y, pt.z);
 			scene.add(mesh);
+		},
+		
+		roundHundreths: function(num) {
+			return Math.round(num * 100) / 100;
 		}
 	}
 }
