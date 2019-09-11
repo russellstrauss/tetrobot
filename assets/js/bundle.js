@@ -30,7 +30,7 @@ module.exports = function () {
     settings: {
       activateLightHelpers: false,
       axesHelper: {
-        activateAxesHelper: true,
+        activateAxesHelper: false,
         axisLength: 10
       },
       tetrahedron: {
@@ -45,8 +45,14 @@ module.exports = function () {
           curveSegments: 1
         }
       },
+      defaultCameraLocation: {
+        x: -20,
+        y: 20,
+        z: 20
+      },
       stepCount: 0,
-      messageDuration: 2000
+      messageDuration: 2000,
+      errorLogging: false
     },
     init: function init() {
       var self = this;
@@ -62,9 +68,7 @@ module.exports = function () {
       self.resizeRendererOnWindowResize();
       self.setUpLights();
       self.addTetrahedron();
-      camera.position.x = -20;
-      camera.position.y = 20;
-      camera.position.z = 20;
+      self.setCameraLocation(self.settings.defaultCameraLocation);
 
       var animate = function animate() {
         requestAnimationFrame(animate);
@@ -74,6 +78,11 @@ module.exports = function () {
       };
 
       animate();
+    },
+    setCameraLocation: function setCameraLocation(pt) {
+      camera.position.x = pt.x;
+      camera.position.y = pt.y;
+      camera.position.z = pt.z;
     },
     resizeRendererOnWindowResize: function resizeRendererOnWindowResize() {
       window.addEventListener('resize', utils.debounce(function () {
@@ -151,10 +160,24 @@ module.exports = function () {
         self.activateAxesHelper();
       }
     },
+    resetScene: function resetScene() {
+      var self = this;
+      self.settings.stepCount = 0;
+
+      for (var i = scene.children.length - 1; i >= 0; i--) {
+        var obj = scene.children[i];
+        scene.remove(obj);
+      }
+
+      self.addFloor();
+      self.addTetrahedron();
+      self.setUpLights();
+      self.setCameraLocation(self.settings.defaultCameraLocation);
+    },
     goLeft: function goLeft(tetrahedronGeometry, triangleGeometry) {
       var self = this;
       var geometry = tetrahedronGeometry.clone();
-      self.threeStepRotation(geometry, triangleGeometry.vertices[1], triangleGeometry.vertices[0], 0);
+      self.newThreeStepRotation(geometry, triangleGeometry.vertices[1], triangleGeometry.vertices[0], 0);
       var material = new THREE.MeshBasicMaterial({
         wireframe: true,
         color: distinctColors[self.settings.stepCount]
@@ -166,7 +189,7 @@ module.exports = function () {
     goRight: function goRight(tetrahedronGeometry, triangleGeometry) {
       var self = this;
       var geometry = tetrahedronGeometry.clone();
-      self.threeStepRotation(geometry, triangleGeometry.vertices[0], triangleGeometry.vertices[1], 0);
+      self.newThreeStepRotation(geometry, triangleGeometry.vertices[0], triangleGeometry.vertices[1], 0);
       var material = new THREE.MeshBasicMaterial({
         wireframe: true,
         color: distinctColors[self.settings.stepCount]
@@ -178,8 +201,8 @@ module.exports = function () {
     goBack: function goBack(tetrahedronGeometry, triangleGeometry) {
       var self = this;
       var geometry = tetrahedronGeometry.clone();
-      self.threeStepRotation(geometry, triangleGeometry.vertices[2], triangleGeometry.vertices[0], Math.PI);
-      geometry.rotateX(Math.PI);
+      self.newThreeStepRotation(geometry, triangleGeometry.vertices[2], triangleGeometry.vertices[0], Math.PI); //geometry.rotateX(Math.PI);
+
       var material = new THREE.MeshBasicMaterial({
         wireframe: true,
         color: distinctColors[self.settings.stepCount]
@@ -272,6 +295,25 @@ module.exports = function () {
       geometry.rotateY(theta);
       geometry.translate(axisPt1.x, axisPt1.y, axisPt1.z);
     },
+    newThreeStepRotation: function newThreeStepRotation(geometry, axisPt1, axisPt2, angle) {
+      var self = this; // uncomment to visualize endpoints of rotation axis
+
+      self.showPoint(axisPt1, new THREE.Color('red'));
+      self.showPoint(axisPt2, new THREE.Color('red'));
+      var v = new THREE.Vector3(axisPt2.x - axisPt1.x, axisPt2.y - axisPt1.y, axisPt2.z - axisPt1.z);
+      v.normalize();
+      var theta = Math.atan(v.x / v.z); // is there a problem using arctan here? theta does not have a zero value when passing in a 0-angle of rotation
+
+      v.applyAxisAngle(new THREE.Vector3(0, 1, 0), -1 * theta);
+      var phi = Math.atan(v.y / Math.sqrt(Math.pow(v.x, 2) + Math.pow(v.z, 2)));
+      v.applyAxisAngle(new THREE.Vector3(1, 0, 0), phi);
+      v.applyAxisAngle(new THREE.Vector3(0, 0, 1), angle);
+      geometry.translate(-1 * axisPt1.x, -1 * axisPt1.y, -1 * axisPt1.z);
+      geometry.rotateZ(angle);
+      geometry.rotateX(-1 * phi);
+      geometry.rotateY(theta);
+      geometry.translate(axisPt1.x, axisPt1.y, axisPt1.z);
+    },
     showPoints: function showPoints(geometry, color, opacity) {
       var self = this;
 
@@ -285,8 +327,8 @@ module.exports = function () {
       var dotGeometry = new THREE.Geometry();
       dotGeometry.vertices.push(new THREE.Vector3(pt.x, pt.y, pt.z));
       var dotMaterial = new THREE.PointsMaterial({
-        size: 10,
-        sizeAttenuation: false,
+        size: .25,
+        sizeAttenuation: true,
         color: color,
         opacity: opacity,
         transparent: true
@@ -418,16 +460,16 @@ module.exports = function () {
       fontPath = 'assets/vendors/js/three.js/examples/fonts/helvetiker_regular.typeface.json';
       loader.load(fontPath, function (font) {
         // success event
-        console.log('Fonts loaded successfully.');
+        if (self.settings.errorLogging) console.log('Fonts loaded successfully.');
         self.settings.font.fontStyle.font = font;
         self.begin();
         if (self.settings.axesHelper.activateAxesHelper) self.labelAxes();
       }, function (event) {
         // in progress event.
-        console.log('Attempting to load fonts.');
+        if (self.settings.errorLogging) console.log('Attempting to load font JSON now...');
       }, function (event) {
         // error event
-        console.log('Error loading fonts. Webserver required due to CORS policy.');
+        if (self.settings.errorLogging) console.log('Error loading fonts. Webserver required due to CORS policy.');
         self.settings.font.enable = false;
         self.begin();
       });
@@ -466,6 +508,7 @@ module.exports = function () {
         var L = 76;
         var R = 82;
         var O = 79;
+        var esc = 27;
 
         if (event.keyCode === L) {
           currentStep = self.step(currentStep, 'L');
@@ -486,6 +529,14 @@ module.exports = function () {
         if (event.keyCode === O) {
           currentStep = self.step(currentStep, 'O');
           message.textContent = 'Roll back';
+          setTimeout(function () {
+            message.textContent = '';
+          }, self.settings.messageDuration);
+        }
+
+        if (event.keyCode === esc) {
+          self.resetScene();
+          message.textContent = 'Reset scene';
           setTimeout(function () {
             message.textContent = '';
           }, self.settings.messageDuration);

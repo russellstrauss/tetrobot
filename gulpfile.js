@@ -75,10 +75,16 @@ gulp.task('HTML', function() {
 });
 
 gulp.task('watch', function() {
-	gulp.watch('./assets/sass/**/*.scss', ['sass']);
-	gulp.watch(['./assets/js/**/*.js', '!./assets/js/bundle.js'], ['javascript']);
-	gulp.watch('./**/*.html', ['HTML']);
-	gulp.watch(['./assets/vendors/js/*.js', '!./assets/vendors/js/vendors.min.js'], ['vendors']);
+
+	watch('./assets/sass/**/*.scss', function() {
+		gulp.start('sass');
+	});
+	watch(['./assets/js/**/*.js', '!./assets/js/bundle.js'], function() {
+		gulp.start('javascript');
+	});
+	watch('./**/*.html', function() {
+		gulp.start('HTML');
+	});	
 });
 
 // Default Task
