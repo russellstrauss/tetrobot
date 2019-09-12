@@ -1,4 +1,4 @@
-# Tetrobot Phase 1
+# Tetrobot
 
 A tetrahedral robot virtual simulation.
 
@@ -36,6 +36,14 @@ npm install gulp -g
 
 After running the gulp command, a new browser window will open with the project running.
 
+### Running
+
+After completing the above steps (you must re-run the 'npm install' command if the node_modules folder has been deleted), you can run the application by simply running the command 'gulp' in the root of the directory.
+
+```
+gulp
+```
+
 ### Controls
 
 * L key: roll left
@@ -55,4 +63,4 @@ If you cannot run local web server, view project here: [http://jrstrauss.net/cg/
 
 ## Reference Materials
 
-* [Rotations About an Arbitrary Axis](https://www.youtube.com/watch?v=gRVxv8kWl0Q&t=1224s) - UC Davis Academics
+* [Rotate a point about an arbitrary axis (3 dimensions)](http://paulbourke.net/geometry/rotate/) - Paul Bourke

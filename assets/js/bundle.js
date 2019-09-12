@@ -214,6 +214,8 @@ module.exports = function () {
     getDirectionVector: function getDirectionVector(oppositeMidpoint, top) {
       var self = this;
       top.y = 0;
+      currentStep.direction = new THREE.Vector3(); //currentStep.direction.subVectors(top, oppositeMidpoint).normalize();
+
       self.drawLine(oppositeMidpoint, top);
     },
     goBack: function goBack(tetrahedronGeometry, bottomFace) {
@@ -237,7 +239,7 @@ module.exports = function () {
       } else if (direction === 'R') {
         nextStep = self.goRight(tetrahedronGeometry, bottomFace);
       } else if (direction === 'O') {
-        nextStep = self.bottomFace(tetrahedronGeometry, bottomFace);
+        nextStep = self.goBack(tetrahedronGeometry, bottomFace);
       } // Calculate which edge of the tetrahedron shares the previous step--the 'O' edge--by comparing which two vertices coincide
 
 
@@ -385,6 +387,7 @@ module.exports = function () {
       var line = new THREE.Line(geometry, material);
       scene.add(line);
     },
+    drawVector: function drawVector() {},
     getDistance: function getDistance(pt1, pt2) {
       // create point class?
       var squirt = Math.pow(pt2.x - pt1.x, 2) + Math.pow(pt2.y - pt1.y, 2) + Math.pow(pt2.z - pt1.z, 2);
@@ -457,8 +460,13 @@ module.exports = function () {
       });
       return result;
     },
-    // Input: triangle geometry of the tetrahedron face that is currently on the floor, then will label midpoint directions for left, right, and opposite
-    // try passing in previous edge to label new direction
+    getAngleBetweenVectors: function getAngleBetweenVectors(vector1, vector2) {
+      var dot = vector1.dot(vector2);
+      var length1 = vector1.length();
+      var length2 = vector2.length();
+      var angle = Math.acos(dot / (length1 * length2));
+      return angle;
+    },
     labelDirections: function labelDirections(triangleGeometry, bottomFace) {
       var self = this;
       var midpoints = []; // Get shared edge with parameters and set midpoint to O
