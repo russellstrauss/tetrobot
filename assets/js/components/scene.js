@@ -20,6 +20,9 @@ module.exports = function() {
 	var distinctColors = [new THREE.Color('#e6194b'), new THREE.Color('#3cb44b'), new THREE.Color('#ffe119'), new THREE.Color('#4363d8'), new THREE.Color('#f58231'), new THREE.Color('#911eb4'), new THREE.Color('#46f0f0'), new THREE.Color('#f032e6'), new THREE.Color('#bcf60c'), new THREE.Color('#fabebe'), new THREE.Color('#008080'), new THREE.Color('#e6beff'), new THREE.Color('#9a6324'), new THREE.Color('#fffac8'), new THREE.Color('#800000'), new THREE.Color('#aaffc3'), new THREE.Color('#808000'), new THREE.Color('#ffd8b1'), new THREE.Color('#000075'), new THREE.Color('#808080'), new THREE.Color('#ffffff'), new THREE.Color('#000000')];
 	var currentStep;
 	var nextStep, top, center; // testing
+	var black = new THREE.Color('black');
+	var previousRollEdge = {};
+	previousRollEdge.vertices = [];
 	
 	return {
 		
@@ -79,7 +82,7 @@ module.exports = function() {
 				stats.update();
 			};
 			
-			animate();
+			animate(); 
 		},
 		
 		setCameraLocation: function(pt) {
@@ -108,7 +111,7 @@ module.exports = function() {
 			controls.dampingFactor = 0.05;
 			controls.zoomSpeed = 6;
 			controls.enablePan = !utils.mobile();
-			controls.minDistance = 18;
+			controls.minDistance = 10;
 			controls.maxDistance = 100;
 			controls.maxPolarAngle = Math.PI / 2;
 		},
@@ -199,7 +202,10 @@ module.exports = function() {
 			
 			let self = this;
 			let geometry = tetrahedronGeometry.clone();
-			self.newThreeStepRotation(geometry, triangleGeometry.vertices[1], triangleGeometry.vertices[0], 0);
+			//self.rotateGeometryAboutLine(geometry, triangleGeometry.vertices[1], triangleGeometry.vertices[1],  1.910633236249);
+			geometry = self.rotateGeometryAboutLine(geometry, triangleGeometry.vertices[1], triangleGeometry.vertices[1],  Math.PI/6);
+			// self.showPoint(triangleGeometry.vertices[2]);
+			// self.showPoint(triangleGeometry.vertices[1]);
 			
 			let material = new THREE.MeshBasicMaterial({ wireframe: true, color: distinctColors[self.settings.stepCount] });
 			let mesh = new THREE.Mesh(geometry, wireframeMaterial);
@@ -208,15 +214,27 @@ module.exports = function() {
 			return geometry;
 		},
 		
-		goRight: function(tetrahedronGeometry, triangleGeometry) {
+		goRight: function(tetrahedronGeometry, bottomFace) {
 			
 			let self = this;
 			let geometry = tetrahedronGeometry.clone();
-			self.newThreeStepRotation(geometry, triangleGeometry.vertices[0], triangleGeometry.vertices[1], 0);
+			geometry = self.rotateGeometryAboutLine(geometry, bottomFace.vertices[0], bottomFace.vertices[1], 1.910633236249);
+			
+			self.showPoint(bottomFace.vertices[0], distinctColors[self.settings.stepCount]);
+			self.showPoint(bottomFace.vertices[1], distinctColors[self.settings.stepCount]);
 			
 			let material = new THREE.MeshBasicMaterial({ wireframe: true, color: distinctColors[self.settings.stepCount] });
-			let mesh = new THREE.Mesh(geometry, wireframeMaterial);
+			let mesh = new THREE.Mesh(geometry, material);
 			scene.add(mesh);
+			
+			// rotate so next move is correct
+			let centroid = self.getCentroid(currentStep);
+			let top = self.getHighestVertex(geometry);
+			self.showPoints(geometry, black);
+			//self.showPoint(centroid, new THREE.Color('green'));
+			self.drawLine(centroid, top);
+			//self.showPoint(top, new THREE.Color('green'));
+			//geometry = self.rotateGeometryAboutLine(geometry, centroid, top, 2 * Math.PI / 3);
 			
 			return geometry;
 		},
@@ -225,7 +243,7 @@ module.exports = function() {
 			
 			let self = this;
 			let geometry = tetrahedronGeometry.clone();
-			self.newThreeStepRotation(geometry, triangleGeometry.vertices[2], triangleGeometry.vertices[0], Math.PI);
+			self.rotateGeometryAboutLine(geometry, triangleGeometry.vertices[2], triangleGeometry.vertices[0], 1.910633236249);
 			//geometry.rotateX(Math.PI);
 			
 			let material = new THREE.MeshBasicMaterial({ wireframe: true, color: distinctColors[self.settings.stepCount] });
@@ -236,6 +254,41 @@ module.exports = function() {
 			return geometry;
 		},
 		
+		step: function(tetrahedronGeometry, direction) {
+			
+			let self = this;
+			let bottomFace = self.getBottomFace(tetrahedronGeometry);
+			
+			if (direction === 'L') {
+				nextStep = self.goLeft(tetrahedronGeometry, bottomFace);
+			}
+			else if (direction === 'R') {
+				nextStep = self.goRight(tetrahedronGeometry, bottomFace);
+				
+			}
+			else if (direction === 'O') {
+				nextStep = self.goBack(tetrahedronGeometry, bottomFace);
+			}
+			
+			// Calculate which edge of the tetrahedron shares the previous step--the 'O' edge--by comparing which two vertices coincide
+			tetrahedronGeometry.vertices.forEach(function(tetVertex) {
+				
+				bottomFace.vertices.forEach(function(triVertex) {
+					
+					if (self.roundHundreths(tetVertex.x) === self.roundHundreths(triVertex.x) && 
+						self.roundHundreths(tetVertex.y) === self.roundHundreths(triVertex.y) &&
+						self.roundHundreths(tetVertex.z) === self.roundHundreths(triVertex.z))
+					{
+						previousRollEdge.vertices.push(triVertex);
+					}
+				});
+			});
+			self.labelDirections(bottomFace);
+			
+			self.settings.stepCount += 1;
+			return nextStep;
+		},
+		
 		addTetrahedron: function() {
 			
 			let self = this;
@@ -243,7 +296,7 @@ module.exports = function() {
 			tetrahedronGeometry.applyMatrix( new THREE.Matrix4().makeRotationAxis( new THREE.Vector3( 1, 0, -1 ).normalize(), Math.atan( Math.sqrt(2)) ) ); // Rotate to be flat on floor
 			tetrahedronGeometry.rotateY(Math.PI/4); // rotate to line up with x-axis
 			
-			let centroidOfBottomFace = self.calculateCentroidOfBottomFace(tetrahedronGeometry);
+			let centroidOfBottomFace = self.getCentroidOfBottomFace(tetrahedronGeometry);
 			let tetrahedronHeight = self.getDistance(centroidOfBottomFace, tetrahedronGeometry.vertices[2]);
 			
 			tetrahedronGeometry.translate(0 , tetrahedronHeight / 4, 0);
@@ -268,7 +321,7 @@ module.exports = function() {
 			
 			currentStep = startingGeometry;
 			
-			self.labelDirections(triangleGeometry);
+			//self.labelDirections(triangleGeometry);
 		},
 		
 		getBottomFace: function(tetrahedronGeometry) {
@@ -278,7 +331,7 @@ module.exports = function() {
 			
 			tetrahedronGeometry.vertices.forEach(function(vertex) {
 				
-				if (vertex.y === 0) { // Relies on there being no rounding errors
+				if (self.roundHundreths(vertex.y) === 0) { // Relies on there being no rounding errors
 					
 					bottomFace.vertices.push(vertex);
 				}
@@ -287,84 +340,80 @@ module.exports = function() {
 			return bottomFace;
 		},
 		
-		step: function(tetrahedronGeometry, direction) {
-			
-			let self = this;
-			let bottomFace = self.getBottomFace(tetrahedronGeometry);
-			
-			if (direction === 'L') {
-				let copy = tetrahedronGeometry.clone();
-				nextStep = self.goLeft(copy, bottomFace);
-			}
-			else if (direction === 'R') {
-				nextStep = self.goRight(tetrahedronGeometry, bottomFace);
-			}
-			else if (direction === 'O') {
-				nextStep = self.goBack(tetrahedronGeometry, bottomFace);
-			}
-			
-			// Calculate which edge of the tetrahedron shares the previous step--the 'O' edge--by comparing which two vertices coincide
-			// let oppositeSide = {};
-			// oppositeSide.vertices = [];
-			// tetrahedronGeometry.vertices.forEach(function(tetVertex) {
-				
-			// 	bottomFace.vertices.forEach(function(triVertex) {
-					
-			// 		if (tetVertex.x === triVertex.x && tetVertex.y === triVertex.y && tetVertex.z === triVertex.z) { // WARNING will break with rounding errors
-			// 			oppositeSide.vertices.push(triVertex);
-			// 		}
-			// 	});
-			// });
-			// self.labelDirections(bottomFace);
-			
-			self.settings.stepCount += 1;
-			return nextStep;
-		},
-		
-		threeStepRotation: function(geometry, axisPt1, axisPt2, angle) {
+		rotatePointAboutLine: function(pt, axisPt1, axisPt2, angle) {
 			
 			let self = this;
 			
 			// uncomment to visualize endpoints of rotation axis
-			// self.showPoint(axisPt1, new THREE.Color('red'));
-			// self.showPoint(axisPt2, new THREE.Color('red'));
-			
-			let v = new THREE.Vector3(axisPt2.x - axisPt1.x, axisPt2.y - axisPt1.y, axisPt2.z - axisPt1.z);
-			v.normalize();
-			let theta = Math.atan(v.x/v.z); // is there a problem using arctan here? theta does not have a zero value when passing in a 0-angle of rotation
-			v.applyAxisAngle(new THREE.Vector3(0, 1, 0), -1 * theta);
-			let phi = Math.atan(v.y/Math.sqrt(Math.pow(v.x, 2) + Math.pow(v.z, 2)))
-			v.applyAxisAngle(new THREE.Vector3(1, 0, 0), phi);
-			v.applyAxisAngle(new THREE.Vector3(0, 0, 1), angle);
-			
-			geometry.translate(-1 * axisPt1.x, -1 * axisPt1.y, -1 * axisPt1.z);
-			geometry.rotateZ(angle);
-			geometry.rotateX(-1 * phi);
-			geometry.rotateY(theta);
-			geometry.translate(axisPt1.x, axisPt1.y, axisPt1.z);
-		},
-		
-		newThreeStepRotation: function(geometry, axisPt1, axisPt2, angle) {
-			
-			let self = this;
-			
-			// uncomment to visualize endpoints of rotation axis
+			console.log('axisPt1: ', axisPt1, 'axisPt2: ', axisPt2);
 			self.showPoint(axisPt1, new THREE.Color('red'));
 			self.showPoint(axisPt2, new THREE.Color('red'));
 			
-			let v = new THREE.Vector3(axisPt2.x - axisPt1.x, axisPt2.y - axisPt1.y, axisPt2.z - axisPt1.z);
-			v.normalize();
-			let theta = Math.atan(v.x/v.z); // is there a problem using arctan here? theta does not have a zero value when passing in a 0-angle of rotation
-			v.applyAxisAngle(new THREE.Vector3(0, 1, 0), -1 * theta);
-			let phi = Math.atan(v.y/Math.sqrt(Math.pow(v.x, 2) + Math.pow(v.z, 2)))
-			v.applyAxisAngle(new THREE.Vector3(1, 0, 0), phi);
-			v.applyAxisAngle(new THREE.Vector3(0, 0, 1), angle);
+			let u = new THREE.Vector3(0, 0, 0), q1 = new THREE.Vector3(0, 0, 0), q2 = new THREE.Vector3(0, 0, 0);
+			let d = 0.0;
+		 
+			/* Step 1 */
+			q1.x = pt.x - axisPt1.x;
+			q1.y = pt.y - axisPt1.y;
+			q1.z = pt.z - axisPt1.z;
+		 
+			u.x = axisPt2.x - axisPt1.x;
+			u.y = axisPt2.y - axisPt1.y;
+			u.z = axisPt2.z - axisPt1.z;
+			u.normalize();
+			d = Math.sqrt(u.y*u.y + u.z*u.z);
+		 
+			/* Step 2 */
+			if (d != 0) {
+			   q2.x = q1.x;
+			   q2.y = q1.y * u.z / d - q1.z * u.y / d;
+			   q2.z = q1.y * u.y / d + q1.z * u.z / d;
+			}
+			else {
+			   q2 = q1;
+			}
+		 
+			/* Step 3 */
+			q1.x = q2.x * d - q2.z * u.x;
+			q1.y = q2.y;
+			q1.z = q2.x * u.x + q2.z * d;
+		 
+			/* Step 4 */
+			q2.x = q1.x * Math.cos(angle) - q1.y * Math.sin(angle);
+			q2.y = q1.x * Math.sin(angle) + q1.y * Math.cos(angle);
+			q2.z = q1.z;
+		 
+			/* Inverse of step 3 */
+			q1.x =   q2.x * d + q2.z * u.x;
+			q1.y =   q2.y;
+			q1.z = - q2.x * u.x + q2.z * d;
+		 
+			/* Inverse of step 2 */
+			if (d != 0) {
+			   q2.x =   q1.x;
+			   q2.y =   q1.y * u.z / d + q1.z * u.y / d;
+			   q2.z = - q1.y * u.y / d + q1.z * u.z / d;
+			}
+			else {
+			   q2 = q1;
+			}
+		 
+			/* Inverse of step 1 */
+			q1.x = q2.x + axisPt1.x;
+			q1.y = q2.y + axisPt1.y;
+			q1.z = q2.z + axisPt1.z;
+			return q1;
+		},
+		
+		rotateGeometryAboutLine: function(geometry, axisPt1, axisPt2, angle) {
 			
-			geometry.translate(-1 * axisPt1.x, -1 * axisPt1.y, -1 * axisPt1.z);
-			geometry.rotateZ(angle);
-			geometry.rotateX(-1 * phi);
-			geometry.rotateY(theta);
-			geometry.translate(axisPt1.x, axisPt1.y, axisPt1.z);
+			let self = this;
+			
+			for (let i = 0; i < geometry.vertices.length; i++) {
+				geometry.vertices[i] = self.rotatePointAboutLine(geometry.vertices[i], axisPt1, axisPt2, angle);
+			}
+			
+			return geometry;
 		},
 		
 		showPoints: function(geometry, color, opacity) {
@@ -441,7 +490,7 @@ module.exports = function() {
 			return triangleGeometry;
 		},
 		
-		calculateCentroidOfBottomFace: function(tetrahedronGeometry) {
+		getCentroidOfBottomFace: function(tetrahedronGeometry) {
 			
 			let centroidOfBottomFace = {};
 			centroidOfBottomFace.x = (tetrahedronGeometry.vertices[0].x + tetrahedronGeometry.vertices[1].x + tetrahedronGeometry.vertices[3].x) / 3;
@@ -451,16 +500,16 @@ module.exports = function() {
 			return centroidOfBottomFace;
 		},
 		
-		calculateCentroidLocation: function(geometryVertices) { // Calculating centroid of a tetrahedron: https://www.youtube.com/watch?v=Infxzuqd_F4
+		getCentroid: function(geometry) { // Calculating centroid of a tetrahedron: https://www.youtube.com/watch?v=Infxzuqd_F4
 			
 			let result = {};
 			let x = 0, y = 0, z = 0;
 			
-			for (let i = 0; i < geometryVertices.length; i++) {
+			for (let i = 0; i < geometry.vertices.length; i++) {
 				
-				x += geometryVertices[i].x;
-				y += geometryVertices[i].y;
-				z += geometryVertices[i].z;
+				x += geometry.vertices[i].x;
+				y += geometry.vertices[i].y;
+				z += geometry.vertices[i].z;
 			}
 			
 			x = x / 4;
@@ -570,7 +619,6 @@ module.exports = function() {
 				}
 			});
 			
-			self.showPoint(highest);
 			return highest;
 		},
 		
@@ -623,6 +671,10 @@ module.exports = function() {
 					}, self.settings.messageDuration);
 				}
 			});
+		},
+		
+		roundHundreths: function(num) {
+			return Math.round(num * 100) / 100;
 		}
 	}
 }
