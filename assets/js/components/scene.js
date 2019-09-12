@@ -269,21 +269,11 @@ module.exports = function() {
 			}
 			
 			// Calculate which edge of the tetrahedron shares the previous step--the 'O' edge--by comparing which two vertices coincide
-			tetrahedronGeometry.vertices.forEach(function(tetVertex) {
-				
-				bottomFace.vertices.forEach(function(triVertex) {
-					
-					if (self.roundHundreths(tetVertex.x) === self.roundHundreths(triVertex.x) && 
-						self.roundHundreths(tetVertex.y) === self.roundHundreths(triVertex.y) &&
-						self.roundHundreths(tetVertex.z) === self.roundHundreths(triVertex.z))
-					{
-						previousRollEdge.vertices.push(triVertex);
-					}
-				});
-			});
+			previousRollEdge = self.getSharedVertices(tetrahedronGeometry, bottomFace);
+			self.showPoints(previousRollEdge, 0x00ff00);
 
 			bottomFace = self.getBottomFace(nextStep);
-			self.labelDirections(nextStep);
+			self.labelDirections(currentStep, bottomFace);
 			
 			self.settings.stepCount += 1;
 			return nextStep;
@@ -432,8 +422,8 @@ module.exports = function() {
 			let dotGeometry = new THREE.Geometry();
 			dotGeometry.vertices.push(new THREE.Vector3(pt.x, pt.y, pt.z));
 			let dotMaterial = new THREE.PointsMaterial({ 
-				size: .25,
-				sizeAttenuation: true,
+				size: 10,
+				sizeAttenuation: false,
 				color: color,
 				opacity: opacity,
 				transparent: true
@@ -529,27 +519,51 @@ module.exports = function() {
 
 		getSharedVertices: function(geometry1, geometry2) {
 
+			let self = this;
+
+			let result = new THREE.Geometry();
+			geometry1.vertices.forEach(function(geometry1Vertex) {
+				
+				geometry2.vertices.forEach(function(geometry2Vertex) {
+					
+					if (self.roundHundreths(geometry1Vertex.x) === self.roundHundreths(geometry2Vertex.x) && 
+						self.roundHundreths(geometry1Vertex.y) === self.roundHundreths(geometry2Vertex.y) &&
+						self.roundHundreths(geometry1Vertex.z) === self.roundHundreths(geometry2Vertex.z))
+					{
+						result.vertices.push(geometry2Vertex);
+					}
+				});
+			});
+
+			return result;
 		},
 		
 		// Input: triangle geometry of the tetrahedron face that is currently on the floor, then will label midpoint directions for left, right, and opposite
 
 		// try passing in previous edge to label new direction
-		labelDirections: function(triangleGeometry) {
+		labelDirections: function(triangleGeometry, bottomFace) {
 			
 			let self = this;
 			let midpoints = [];
-			midpoints.push(self.getMidpoint(triangleGeometry.vertices[0], triangleGeometry.vertices[1]));
-			midpoints.push(self.getMidpoint(triangleGeometry.vertices[1], triangleGeometry.vertices[2]));
-			midpoints.push(self.getMidpoint(triangleGeometry.vertices[2], triangleGeometry.vertices[0]));
-			
-			let labels = ['R', 'L','O'];
-			
-			let colors = [new THREE.Color( 'black' ), new THREE.Color( 'black' ), new THREE.Color( 'black' )]; 
-			for (let i = 0; i < midpoints.length; i++) {
 
-				self.showPoint(midpoints[i], colors[i]);
-				self.labelPoint(midpoints[i], labels[i], new THREE.Color(0x000000));
-			}
+			// Get shared edge with parameters and set midpoint to O
+			let oppositeSide = self.getSharedVertices(triangleGeometry, bottomFace);
+			let oppositeMidpoint = self.getMidpoint(oppositeSide.vertices[0], oppositeSide.vertices[1]);
+			self.showPoint(oppositeMidpoint, black)
+			self.labelPoint(oppositeMidpoint, 'O', black);
+
+			// midpoints.push(self.getMidpoint(triangleGeometry.vertices[0], triangleGeometry.vertices[1]));
+			// midpoints.push(self.getMidpoint(triangleGeometry.vertices[1], triangleGeometry.vertices[2]));
+			// midpoints.push(self.getMidpoint(triangleGeometry.vertices[2], triangleGeometry.vertices[0]));
+			
+			// let labels = ['R', 'L','O'];
+			
+			// let colors = [new THREE.Color( 'black' ), new THREE.Color( 'black' ), new THREE.Color( 'black' )]; 
+			// for (let i = 0; i < midpoints.length; i++) {
+
+			// 	self.showPoint(midpoints[i], colors[i]);
+			// 	self.labelPoint(midpoints[i], labels[i], new THREE.Color(0x000000));
+			// }
 		},
 		
 		labelAxes: function() {
