@@ -202,10 +202,11 @@ module.exports = function() {
 			
 			let self = this;
 			let geometry = tetrahedronGeometry.clone();
-			geometry = self.rotateGeometryAboutLine(geometry, bottomFace.vertices[1], bottomFace.vertices[1],  Math.PI/6);
 			
-			self.showPoint(bottomFace.vertices[2], distinctColors[self.settings.stepCount]);
-			self.showPoint(bottomFace.vertices[1], distinctColors[self.settings.stepCount]);
+			geometry = self.rotateGeometryAboutLine(geometry, bottomFace.vertices[2], bottomFace.vertices[1],  -1.910633236249);
+			
+			// self.showPoint(bottomFace.vertices[2], distinctColors[self.settings.stepCount]);
+			// self.showPoint(bottomFace.vertices[1], distinctColors[self.settings.stepCount]);
 			
 			let material = new THREE.MeshBasicMaterial({ wireframe: true, color: distinctColors[self.settings.stepCount] });
 			let mesh = new THREE.Mesh(geometry, wireframeMaterial);
@@ -220,8 +221,8 @@ module.exports = function() {
 			let geometry = tetrahedronGeometry.clone();
 			geometry = self.rotateGeometryAboutLine(geometry, bottomFace.vertices[0], bottomFace.vertices[1], 1.910633236249);
 			
-			self.showPoint(bottomFace.vertices[0], distinctColors[self.settings.stepCount]);
-			self.showPoint(bottomFace.vertices[1], distinctColors[self.settings.stepCount]);
+			// self.showPoint(bottomFace.vertices[0], distinctColors[self.settings.stepCount]);
+			// self.showPoint(bottomFace.vertices[1], distinctColors[self.settings.stepCount]);
 			
 			let material = new THREE.MeshBasicMaterial({ wireframe: true, color: distinctColors[self.settings.stepCount] });
 			let mesh = new THREE.Mesh(geometry, material);
@@ -236,16 +237,23 @@ module.exports = function() {
 
 			return geometry;
 		},
+
+		getDirectionVector: function(oppositeMidpoint, top) {
+
+			let self = this;
+			top.y = 0;
+			self.drawLine(oppositeMidpoint, top);
+
+			
+		},
 		
-		goBack: function(tetrahedronGeometry, triangleGeometry) {
+		goBack: function(tetrahedronGeometry, bottomFace) {
 			
 			let self = this;
 			let geometry = tetrahedronGeometry.clone();
-			self.rotateGeometryAboutLine(geometry, triangleGeometry.vertices[2], triangleGeometry.vertices[0], 1.910633236249);
-			//geometry.rotateX(Math.PI);
+			geometry = self.rotateGeometryAboutLine(geometry, bottomFace.vertices[2], bottomFace.vertices[0], 1.910633236249);
 			
 			let material = new THREE.MeshBasicMaterial({ wireframe: true, color: distinctColors[self.settings.stepCount] });
-			
 			let mesh = new THREE.Mesh(geometry, wireframeMaterial);
 			scene.add(mesh);
 			
@@ -265,7 +273,7 @@ module.exports = function() {
 				
 			}
 			else if (direction === 'O') {
-				nextStep = self.goBack(tetrahedronGeometry, bottomFace);
+				nextStep = self.bottomFace(tetrahedronGeometry, bottomFace);
 			}
 			
 			// Calculate which edge of the tetrahedron shares the previous step--the 'O' edge--by comparing which two vertices coincide
@@ -300,7 +308,7 @@ module.exports = function() {
 				// 				[red, 		green, 		blue, 		purple]
 				
 				tetrahedronGeometry.verticesNeedUpdate = true;
-				self.showPoint(tetrahedronGeometry.vertices[i], colors[i]);
+				//self.showPoint(tetrahedronGeometry.vertices[i], colors[i]);
 			}
 			
 			tetrahedron = new THREE.Mesh(tetrahedronGeometry, shadeMaterial);
@@ -547,10 +555,14 @@ module.exports = function() {
 			let midpoints = [];
 
 			// Get shared edge with parameters and set midpoint to O
-			let oppositeSide = self.getSharedVertices(triangleGeometry, bottomFace);
-			let oppositeMidpoint = self.getMidpoint(oppositeSide.vertices[0], oppositeSide.vertices[1]);
+			let oppositeEdge = self.getSharedVertices(triangleGeometry, bottomFace);
+			let oppositeMidpoint = self.getMidpoint(oppositeEdge.vertices[0], oppositeEdge.vertices[1]);
 			self.showPoint(oppositeMidpoint, black)
 			self.labelPoint(oppositeMidpoint, 'O', black);
+
+			currentStep.oppositeEdge = oppositeEdge;
+
+			currentStep.direction = self.getDirectionVector(oppositeMidpoint, self.getHighestVertex(currentStep));
 
 			// midpoints.push(self.getMidpoint(triangleGeometry.vertices[0], triangleGeometry.vertices[1]));
 			// midpoints.push(self.getMidpoint(triangleGeometry.vertices[1], triangleGeometry.vertices[2]));

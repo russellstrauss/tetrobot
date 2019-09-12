@@ -180,9 +180,9 @@ module.exports = function () {
     goLeft: function goLeft(tetrahedronGeometry, bottomFace) {
       var self = this;
       var geometry = tetrahedronGeometry.clone();
-      geometry = self.rotateGeometryAboutLine(geometry, bottomFace.vertices[1], bottomFace.vertices[1], Math.PI / 6);
-      self.showPoint(bottomFace.vertices[2], distinctColors[self.settings.stepCount]);
-      self.showPoint(bottomFace.vertices[1], distinctColors[self.settings.stepCount]);
+      geometry = self.rotateGeometryAboutLine(geometry, bottomFace.vertices[2], bottomFace.vertices[1], -1.910633236249); // self.showPoint(bottomFace.vertices[2], distinctColors[self.settings.stepCount]);
+      // self.showPoint(bottomFace.vertices[1], distinctColors[self.settings.stepCount]);
+
       var material = new THREE.MeshBasicMaterial({
         wireframe: true,
         color: distinctColors[self.settings.stepCount]
@@ -194,9 +194,9 @@ module.exports = function () {
     goRight: function goRight(tetrahedronGeometry, bottomFace) {
       var self = this;
       var geometry = tetrahedronGeometry.clone();
-      geometry = self.rotateGeometryAboutLine(geometry, bottomFace.vertices[0], bottomFace.vertices[1], 1.910633236249);
-      self.showPoint(bottomFace.vertices[0], distinctColors[self.settings.stepCount]);
-      self.showPoint(bottomFace.vertices[1], distinctColors[self.settings.stepCount]);
+      geometry = self.rotateGeometryAboutLine(geometry, bottomFace.vertices[0], bottomFace.vertices[1], 1.910633236249); // self.showPoint(bottomFace.vertices[0], distinctColors[self.settings.stepCount]);
+      // self.showPoint(bottomFace.vertices[1], distinctColors[self.settings.stepCount]);
+
       var material = new THREE.MeshBasicMaterial({
         wireframe: true,
         color: distinctColors[self.settings.stepCount]
@@ -211,11 +211,15 @@ module.exports = function () {
       bottomFace = self.rotateGeometryAboutLine(bottomFace, centroid, top, 4 * Math.PI / 3);
       return geometry;
     },
-    goBack: function goBack(tetrahedronGeometry, triangleGeometry) {
+    getDirectionVector: function getDirectionVector(oppositeMidpoint, top) {
+      var self = this;
+      top.y = 0;
+      self.drawLine(oppositeMidpoint, top);
+    },
+    goBack: function goBack(tetrahedronGeometry, bottomFace) {
       var self = this;
       var geometry = tetrahedronGeometry.clone();
-      self.rotateGeometryAboutLine(geometry, triangleGeometry.vertices[2], triangleGeometry.vertices[0], 1.910633236249); //geometry.rotateX(Math.PI);
-
+      geometry = self.rotateGeometryAboutLine(geometry, bottomFace.vertices[2], bottomFace.vertices[0], 1.910633236249);
       var material = new THREE.MeshBasicMaterial({
         wireframe: true,
         color: distinctColors[self.settings.stepCount]
@@ -233,7 +237,7 @@ module.exports = function () {
       } else if (direction === 'R') {
         nextStep = self.goRight(tetrahedronGeometry, bottomFace);
       } else if (direction === 'O') {
-        nextStep = self.goBack(tetrahedronGeometry, bottomFace);
+        nextStep = self.bottomFace(tetrahedronGeometry, bottomFace);
       } // Calculate which edge of the tetrahedron shares the previous step--the 'O' edge--by comparing which two vertices coincide
 
 
@@ -260,8 +264,7 @@ module.exports = function () {
       for (var i = 0; i < tetrahedronGeometry.vertices.length; i++) {
         var colors = [0xCE3611, 0x00CE17, 0x03BAEE, 0x764E8C]; // 				[red, 		green, 		blue, 		purple]
 
-        tetrahedronGeometry.verticesNeedUpdate = true;
-        self.showPoint(tetrahedronGeometry.vertices[i], colors[i]);
+        tetrahedronGeometry.verticesNeedUpdate = true; //self.showPoint(tetrahedronGeometry.vertices[i], colors[i]);
       }
 
       tetrahedron = new THREE.Mesh(tetrahedronGeometry, shadeMaterial);
@@ -460,10 +463,12 @@ module.exports = function () {
       var self = this;
       var midpoints = []; // Get shared edge with parameters and set midpoint to O
 
-      var oppositeSide = self.getSharedVertices(triangleGeometry, bottomFace);
-      var oppositeMidpoint = self.getMidpoint(oppositeSide.vertices[0], oppositeSide.vertices[1]);
+      var oppositeEdge = self.getSharedVertices(triangleGeometry, bottomFace);
+      var oppositeMidpoint = self.getMidpoint(oppositeEdge.vertices[0], oppositeEdge.vertices[1]);
       self.showPoint(oppositeMidpoint, black);
-      self.labelPoint(oppositeMidpoint, 'O', black); // midpoints.push(self.getMidpoint(triangleGeometry.vertices[0], triangleGeometry.vertices[1]));
+      self.labelPoint(oppositeMidpoint, 'O', black);
+      currentStep.oppositeEdge = oppositeEdge;
+      currentStep.direction = self.getDirectionVector(oppositeMidpoint, self.getHighestVertex(currentStep)); // midpoints.push(self.getMidpoint(triangleGeometry.vertices[0], triangleGeometry.vertices[1]));
       // midpoints.push(self.getMidpoint(triangleGeometry.vertices[1], triangleGeometry.vertices[2]));
       // midpoints.push(self.getMidpoint(triangleGeometry.vertices[2], triangleGeometry.vertices[0]));
       // let labels = ['R', 'L','O'];
