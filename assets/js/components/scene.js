@@ -198,14 +198,14 @@ module.exports = function() {
 			self.setCameraLocation(self.settings.defaultCameraLocation);
 		},
 		
-		goLeft: function(tetrahedronGeometry, triangleGeometry) {
+		goLeft: function(tetrahedronGeometry, bottomFace) {
 			
 			let self = this;
 			let geometry = tetrahedronGeometry.clone();
-			//self.rotateGeometryAboutLine(geometry, triangleGeometry.vertices[1], triangleGeometry.vertices[1],  1.910633236249);
-			geometry = self.rotateGeometryAboutLine(geometry, triangleGeometry.vertices[1], triangleGeometry.vertices[1],  Math.PI/6);
-			// self.showPoint(triangleGeometry.vertices[2]);
-			// self.showPoint(triangleGeometry.vertices[1]);
+			geometry = self.rotateGeometryAboutLine(geometry, bottomFace.vertices[1], bottomFace.vertices[1],  Math.PI/6);
+			
+			self.showPoint(bottomFace.vertices[2], distinctColors[self.settings.stepCount]);
+			self.showPoint(bottomFace.vertices[1], distinctColors[self.settings.stepCount]);
 			
 			let material = new THREE.MeshBasicMaterial({ wireframe: true, color: distinctColors[self.settings.stepCount] });
 			let mesh = new THREE.Mesh(geometry, wireframeMaterial);
@@ -229,12 +229,8 @@ module.exports = function() {
 			
 			// rotate so next move is correct
 			let centroid = self.getCentroid(geometry);
-			console.log(centroid);
 			let top = self.getHighestVertex(geometry);
-			//self.showPoints(geometry, black);
-			//self.showPoint(centroid, new THREE.Color('green'));
 			self.drawLine(centroid, top);
-			//self.showPoint(top, new THREE.Color('green'));
 			geometry = self.rotateGeometryAboutLine(geometry, centroid, top, 2 * Math.PI / 3);
 			bottomFace = self.rotateGeometryAboutLine(bottomFace, centroid, top, 4 * Math.PI / 3);
 
@@ -349,64 +345,65 @@ module.exports = function() {
 			let self = this;
 			
 			// uncomment to visualize endpoints of rotation axis
-			//console.log('axisPt1: ', axisPt1, 'axisPt2: ', axisPt2);
-			self.showPoint(axisPt1, new THREE.Color('red'));
-			self.showPoint(axisPt2, new THREE.Color('red'));
+			// self.showPoint(axisPt1, new THREE.Color('red'));
+			// self.showPoint(axisPt2, new THREE.Color('red'));
 			
-			let u = new THREE.Vector3(0, 0, 0), q1 = new THREE.Vector3(0, 0, 0), q2 = new THREE.Vector3(0, 0, 0);
+			let u = new THREE.Vector3(0, 0, 0), rotation1 = new THREE.Vector3(0, 0, 0), rotation2 = new THREE.Vector3(0, 0, 0);
 			let d = 0.0;
+			
+			// Move rotation axis to origin
+			rotation1.x = pt.x - axisPt1.x;
+			rotation1.y = pt.y - axisPt1.y;
+			rotation1.z = pt.z - axisPt1.z;
 		 
-			/* Step 1 */
-			q1.x = pt.x - axisPt1.x;
-			q1.y = pt.y - axisPt1.y;
-			q1.z = pt.z - axisPt1.z;
-		 
+			// Get unit vector equivalent to rotation axis
 			u.x = axisPt2.x - axisPt1.x;
 			u.y = axisPt2.y - axisPt1.y;
 			u.z = axisPt2.z - axisPt1.z;
 			u.normalize();
 			d = Math.sqrt(u.y*u.y + u.z*u.z);
-		 
-			/* Step 2 */
+			
+			// Rotation onto first plane
 			if (d != 0) {
-			   q2.x = q1.x;
-			   q2.y = q1.y * u.z / d - q1.z * u.y / d;
-			   q2.z = q1.y * u.y / d + q1.z * u.z / d;
+			   rotation2.x = rotation1.x;
+			   rotation2.y = rotation1.y * u.z / d - rotation1.z * u.y / d;
+			   rotation2.z = rotation1.y * u.y / d + rotation1.z * u.z / d;
 			}
 			else {
-			   q2 = q1;
+			   rotation2 = rotation1;
 			}
+			
+			// Rotation rotation onto second plane
+			rotation1.x = rotation2.x * d - rotation2.z * u.x;
+			rotation1.y = rotation2.y;
+			rotation1.z = rotation2.x * u.x + rotation2.z * d;
+			
+			// Oriented to axis, now perform original rotation
+			rotation2.x = rotation1.x * Math.cos(angle) - rotation1.y * Math.sin(angle);
+			rotation2.y = rotation1.x * Math.sin(angle) + rotation1.y * Math.cos(angle);
+			rotation2.z = rotation1.z;
 		 
-			/* Step 3 */
-			q1.x = q2.x * d - q2.z * u.x;
-			q1.y = q2.y;
-			q1.z = q2.x * u.x + q2.z * d;
+			// Undo rotation 1
+			rotation1.x =   rotation2.x * d + rotation2.z * u.x;
+			rotation1.y =   rotation2.y;
+			rotation1.z = - rotation2.x * u.x + rotation2.z * d;
 		 
-			/* Step 4 */
-			q2.x = q1.x * Math.cos(angle) - q1.y * Math.sin(angle);
-			q2.y = q1.x * Math.sin(angle) + q1.y * Math.cos(angle);
-			q2.z = q1.z;
-		 
-			/* Inverse of step 3 */
-			q1.x =   q2.x * d + q2.z * u.x;
-			q1.y =   q2.y;
-			q1.z = - q2.x * u.x + q2.z * d;
-		 
-			/* Inverse of step 2 */
+			// Undo rotation 2
 			if (d != 0) {
-			   q2.x =   q1.x;
-			   q2.y =   q1.y * u.z / d + q1.z * u.y / d;
-			   q2.z = - q1.y * u.y / d + q1.z * u.z / d;
+			   rotation2.x =   rotation1.x;
+			   rotation2.y =   rotation1.y * u.z / d + rotation1.z * u.y / d;
+			   rotation2.z = - rotation1.y * u.y / d + rotation1.z * u.z / d;
 			}
 			else {
-			   q2 = q1;
+			   rotation2 = rotation1;
 			}
 		 
-			/* Inverse of step 1 */
-			q1.x = q2.x + axisPt1.x;
-			q1.y = q2.y + axisPt1.y;
-			q1.z = q2.z + axisPt1.z;
-			return q1;
+			// Move back into place
+			rotation1.x = rotation2.x + axisPt1.x;
+			rotation1.y = rotation2.y + axisPt1.y;
+			rotation1.z = rotation2.z + axisPt1.z;
+
+			return rotation1;
 		},
 		
 		rotateGeometryAboutLine: function(geometry, axisPt1, axisPt2, angle) {
@@ -529,8 +526,14 @@ module.exports = function() {
 			let axesHelper = new THREE.AxesHelper(self.settings.axesHelper.axisLength);
 			scene.add(axesHelper);
 		},
+
+		getSharedVertices: function(geometry1, geometry2) {
+
+		},
 		
 		// Input: triangle geometry of the tetrahedron face that is currently on the floor, then will label midpoint directions for left, right, and opposite
+
+		// try passing in previous edge to label new direction
 		labelDirections: function(triangleGeometry) {
 			
 			let self = this;

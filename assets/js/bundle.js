@@ -177,13 +177,12 @@ module.exports = function () {
       self.setUpLights();
       self.setCameraLocation(self.settings.defaultCameraLocation);
     },
-    goLeft: function goLeft(tetrahedronGeometry, triangleGeometry) {
+    goLeft: function goLeft(tetrahedronGeometry, bottomFace) {
       var self = this;
-      var geometry = tetrahedronGeometry.clone(); //self.rotateGeometryAboutLine(geometry, triangleGeometry.vertices[1], triangleGeometry.vertices[1],  1.910633236249);
-
-      geometry = self.rotateGeometryAboutLine(geometry, triangleGeometry.vertices[1], triangleGeometry.vertices[1], Math.PI / 6); // self.showPoint(triangleGeometry.vertices[2]);
-      // self.showPoint(triangleGeometry.vertices[1]);
-
+      var geometry = tetrahedronGeometry.clone();
+      geometry = self.rotateGeometryAboutLine(geometry, bottomFace.vertices[1], bottomFace.vertices[1], Math.PI / 6);
+      self.showPoint(bottomFace.vertices[2], distinctColors[self.settings.stepCount]);
+      self.showPoint(bottomFace.vertices[1], distinctColors[self.settings.stepCount]);
       var material = new THREE.MeshBasicMaterial({
         wireframe: true,
         color: distinctColors[self.settings.stepCount]
@@ -206,12 +205,8 @@ module.exports = function () {
       scene.add(mesh); // rotate so next move is correct
 
       var centroid = self.getCentroid(geometry);
-      console.log(centroid);
-      var top = self.getHighestVertex(geometry); //self.showPoints(geometry, black);
-      //self.showPoint(centroid, new THREE.Color('green'));
-
-      self.drawLine(centroid, top); //self.showPoint(top, new THREE.Color('green'));
-
+      var top = self.getHighestVertex(geometry);
+      self.drawLine(centroid, top);
       geometry = self.rotateGeometryAboutLine(geometry, centroid, top, 2 * Math.PI / 3);
       bottomFace = self.rotateGeometryAboutLine(bottomFace, centroid, top, 4 * Math.PI / 3);
       return geometry;
@@ -293,65 +288,58 @@ module.exports = function () {
     },
     rotatePointAboutLine: function rotatePointAboutLine(pt, axisPt1, axisPt2, angle) {
       var self = this; // uncomment to visualize endpoints of rotation axis
-      //console.log('axisPt1: ', axisPt1, 'axisPt2: ', axisPt2);
+      // self.showPoint(axisPt1, new THREE.Color('red'));
+      // self.showPoint(axisPt2, new THREE.Color('red'));
 
-      self.showPoint(axisPt1, new THREE.Color('red'));
-      self.showPoint(axisPt2, new THREE.Color('red'));
       var u = new THREE.Vector3(0, 0, 0),
-          q1 = new THREE.Vector3(0, 0, 0),
-          q2 = new THREE.Vector3(0, 0, 0);
-      var d = 0.0;
-      /* Step 1 */
+          rotation1 = new THREE.Vector3(0, 0, 0),
+          rotation2 = new THREE.Vector3(0, 0, 0);
+      var d = 0.0; // Move rotation axis to origin
 
-      q1.x = pt.x - axisPt1.x;
-      q1.y = pt.y - axisPt1.y;
-      q1.z = pt.z - axisPt1.z;
+      rotation1.x = pt.x - axisPt1.x;
+      rotation1.y = pt.y - axisPt1.y;
+      rotation1.z = pt.z - axisPt1.z; // Get unit vector equivalent to rotation axis
+
       u.x = axisPt2.x - axisPt1.x;
       u.y = axisPt2.y - axisPt1.y;
       u.z = axisPt2.z - axisPt1.z;
       u.normalize();
-      d = Math.sqrt(u.y * u.y + u.z * u.z);
-      /* Step 2 */
+      d = Math.sqrt(u.y * u.y + u.z * u.z); // Rotation onto first plane
 
       if (d != 0) {
-        q2.x = q1.x;
-        q2.y = q1.y * u.z / d - q1.z * u.y / d;
-        q2.z = q1.y * u.y / d + q1.z * u.z / d;
+        rotation2.x = rotation1.x;
+        rotation2.y = rotation1.y * u.z / d - rotation1.z * u.y / d;
+        rotation2.z = rotation1.y * u.y / d + rotation1.z * u.z / d;
       } else {
-        q2 = q1;
-      }
-      /* Step 3 */
+        rotation2 = rotation1;
+      } // Rotation rotation onto second plane
 
 
-      q1.x = q2.x * d - q2.z * u.x;
-      q1.y = q2.y;
-      q1.z = q2.x * u.x + q2.z * d;
-      /* Step 4 */
+      rotation1.x = rotation2.x * d - rotation2.z * u.x;
+      rotation1.y = rotation2.y;
+      rotation1.z = rotation2.x * u.x + rotation2.z * d; // Oriented to axis, now perform original rotation
 
-      q2.x = q1.x * Math.cos(angle) - q1.y * Math.sin(angle);
-      q2.y = q1.x * Math.sin(angle) + q1.y * Math.cos(angle);
-      q2.z = q1.z;
-      /* Inverse of step 3 */
+      rotation2.x = rotation1.x * Math.cos(angle) - rotation1.y * Math.sin(angle);
+      rotation2.y = rotation1.x * Math.sin(angle) + rotation1.y * Math.cos(angle);
+      rotation2.z = rotation1.z; // Undo rotation 1
 
-      q1.x = q2.x * d + q2.z * u.x;
-      q1.y = q2.y;
-      q1.z = -q2.x * u.x + q2.z * d;
-      /* Inverse of step 2 */
+      rotation1.x = rotation2.x * d + rotation2.z * u.x;
+      rotation1.y = rotation2.y;
+      rotation1.z = -rotation2.x * u.x + rotation2.z * d; // Undo rotation 2
 
       if (d != 0) {
-        q2.x = q1.x;
-        q2.y = q1.y * u.z / d + q1.z * u.y / d;
-        q2.z = -q1.y * u.y / d + q1.z * u.z / d;
+        rotation2.x = rotation1.x;
+        rotation2.y = rotation1.y * u.z / d + rotation1.z * u.y / d;
+        rotation2.z = -rotation1.y * u.y / d + rotation1.z * u.z / d;
       } else {
-        q2 = q1;
-      }
-      /* Inverse of step 1 */
+        rotation2 = rotation1;
+      } // Move back into place
 
 
-      q1.x = q2.x + axisPt1.x;
-      q1.y = q2.y + axisPt1.y;
-      q1.z = q2.z + axisPt1.z;
-      return q1;
+      rotation1.x = rotation2.x + axisPt1.x;
+      rotation1.y = rotation2.y + axisPt1.y;
+      rotation1.z = rotation2.z + axisPt1.z;
+      return rotation1;
     },
     rotateGeometryAboutLine: function rotateGeometryAboutLine(geometry, axisPt1, axisPt2, angle) {
       var self = this;
@@ -459,7 +447,9 @@ module.exports = function () {
       var axesHelper = new THREE.AxesHelper(self.settings.axesHelper.axisLength);
       scene.add(axesHelper);
     },
+    getSharedVertices: function getSharedVertices(geometry1, geometry2) {},
     // Input: triangle geometry of the tetrahedron face that is currently on the floor, then will label midpoint directions for left, right, and opposite
+    // try passing in previous edge to label new direction
     labelDirections: function labelDirections(triangleGeometry) {
       var self = this;
       var midpoints = [];
