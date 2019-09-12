@@ -33,7 +33,7 @@ module.exports = function () {
     settings: {
       activateLightHelpers: false,
       axesHelper: {
-        activateAxesHelper: false,
+        activateAxesHelper: true,
         axisLength: 10
       },
       tetrahedron: {
@@ -205,13 +205,15 @@ module.exports = function () {
       var mesh = new THREE.Mesh(geometry, material);
       scene.add(mesh); // rotate so next move is correct
 
-      var centroid = self.calculateCentroidLocation(currentStep);
-      var top = self.getHighestVertex(geometry);
-      self.showPoints(geometry, black); //self.showPoint(centroid, new THREE.Color('green'));
+      var centroid = self.getCentroid(geometry);
+      console.log(centroid);
+      var top = self.getHighestVertex(geometry); //self.showPoints(geometry, black);
+      //self.showPoint(centroid, new THREE.Color('green'));
 
       self.drawLine(centroid, top); //self.showPoint(top, new THREE.Color('green'));
-      //geometry = self.rotateGeometryAboutLine(geometry, centroid, top, 2 * Math.PI / 3);
 
+      geometry = self.rotateGeometryAboutLine(geometry, centroid, top, 2 * Math.PI / 3);
+      bottomFace = self.rotateGeometryAboutLine(bottomFace, centroid, top, 4 * Math.PI / 3);
       return geometry;
     },
     goBack: function goBack(tetrahedronGeometry, triangleGeometry) {
@@ -247,7 +249,8 @@ module.exports = function () {
           }
         });
       });
-      self.labelDirections(bottomFace);
+      bottomFace = self.getBottomFace(nextStep);
+      self.labelDirections(nextStep);
       self.settings.stepCount += 1;
       return nextStep;
     },
@@ -258,7 +261,7 @@ module.exports = function () {
 
       tetrahedronGeometry.rotateY(Math.PI / 4); // rotate to line up with x-axis
 
-      var centroidOfBottomFace = self.calculateCentroidOfBottomFace(tetrahedronGeometry);
+      var centroidOfBottomFace = self.getCentroidOfBottomFace(tetrahedronGeometry);
       var tetrahedronHeight = self.getDistance(centroidOfBottomFace, tetrahedronGeometry.vertices[2]);
       tetrahedronGeometry.translate(0, tetrahedronHeight / 4, 0);
       triangleGeometry = self.getBottomFace(tetrahedronGeometry);
@@ -290,8 +293,8 @@ module.exports = function () {
     },
     rotatePointAboutLine: function rotatePointAboutLine(pt, axisPt1, axisPt2, angle) {
       var self = this; // uncomment to visualize endpoints of rotation axis
+      //console.log('axisPt1: ', axisPt1, 'axisPt2: ', axisPt2);
 
-      console.log('axisPt1: ', axisPt1, 'axisPt2: ', axisPt2);
       self.showPoint(axisPt1, new THREE.Color('red'));
       self.showPoint(axisPt2, new THREE.Color('red'));
       var u = new THREE.Vector3(0, 0, 0),
@@ -421,14 +424,14 @@ module.exports = function () {
       triangleGeometry.computeFaceNormals();
       return triangleGeometry;
     },
-    calculateCentroidOfBottomFace: function calculateCentroidOfBottomFace(tetrahedronGeometry) {
+    getCentroidOfBottomFace: function getCentroidOfBottomFace(tetrahedronGeometry) {
       var centroidOfBottomFace = {};
       centroidOfBottomFace.x = (tetrahedronGeometry.vertices[0].x + tetrahedronGeometry.vertices[1].x + tetrahedronGeometry.vertices[3].x) / 3;
       centroidOfBottomFace.y = (tetrahedronGeometry.vertices[0].y + tetrahedronGeometry.vertices[1].y + tetrahedronGeometry.vertices[3].y) / 3;
       centroidOfBottomFace.z = (tetrahedronGeometry.vertices[0].z + tetrahedronGeometry.vertices[1].z + tetrahedronGeometry.vertices[3].z) / 3;
       return centroidOfBottomFace;
     },
-    calculateCentroidLocation: function calculateCentroidLocation(geometry) {
+    getCentroid: function getCentroid(geometry) {
       // Calculating centroid of a tetrahedron: https://www.youtube.com/watch?v=Infxzuqd_F4
       var result = {};
       var x = 0,

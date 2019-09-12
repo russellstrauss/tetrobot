@@ -29,7 +29,7 @@ module.exports = function() {
 		settings: {
 			activateLightHelpers: false,
 			axesHelper: {
-				activateAxesHelper: false,
+				activateAxesHelper: true,
 				axisLength: 10
 			},
 			tetrahedron: {
@@ -228,14 +228,16 @@ module.exports = function() {
 			scene.add(mesh);
 			
 			// rotate so next move is correct
-			let centroid = self.getCentroid(currentStep);
+			let centroid = self.getCentroid(geometry);
+			console.log(centroid);
 			let top = self.getHighestVertex(geometry);
-			self.showPoints(geometry, black);
+			//self.showPoints(geometry, black);
 			//self.showPoint(centroid, new THREE.Color('green'));
 			self.drawLine(centroid, top);
 			//self.showPoint(top, new THREE.Color('green'));
-			//geometry = self.rotateGeometryAboutLine(geometry, centroid, top, 2 * Math.PI / 3);
-			
+			geometry = self.rotateGeometryAboutLine(geometry, centroid, top, 2 * Math.PI / 3);
+			bottomFace = self.rotateGeometryAboutLine(bottomFace, centroid, top, 4 * Math.PI / 3);
+
 			return geometry;
 		},
 		
@@ -283,7 +285,9 @@ module.exports = function() {
 					}
 				});
 			});
-			self.labelDirections(bottomFace);
+
+			bottomFace = self.getBottomFace(nextStep);
+			self.labelDirections(nextStep);
 			
 			self.settings.stepCount += 1;
 			return nextStep;
@@ -345,7 +349,7 @@ module.exports = function() {
 			let self = this;
 			
 			// uncomment to visualize endpoints of rotation axis
-			console.log('axisPt1: ', axisPt1, 'axisPt2: ', axisPt2);
+			//console.log('axisPt1: ', axisPt1, 'axisPt2: ', axisPt2);
 			self.showPoint(axisPt1, new THREE.Color('red'));
 			self.showPoint(axisPt2, new THREE.Color('red'));
 			
