@@ -230,12 +230,12 @@
 				return camera;
 			},
 
-			showPoints: function(geometry, color, opacity) {
+			showPoints: function(geometry, scene, color, opacity) {
 			
 				let self = this;
 				
 				for (let i = 0; i < geometry.vertices.length; i++) {
-					graphics.showPoint(geometry.vertices[i], color, opacity);
+					graphics.showPoint(geometry.vertices[i], scene, color, opacity);
 				}
 			},
 
@@ -266,9 +266,9 @@
 			labelPoint: function(pt, label, scene, color) {
 				
 				let self = this;
-				if (self.settings.font.enable) {
+				if (graphics.appSettings.font.enable) {
 					color = color || 0xff0000;
-					let textGeometry = new THREE.TextGeometry(label, self.settings.font.fontStyle);
+					let textGeometry = new THREE.TextGeometry(label, self.appSettings.font.fontStyle);
 					let textMaterial = new THREE.MeshBasicMaterial({ color: color });
 					let mesh = new THREE.Mesh(textGeometry, textMaterial);
 					textGeometry.translate(pt.x, pt.y, pt.z);
@@ -334,6 +334,21 @@
 						renderer.setSize(window.innerWidth, window.innerHeight);
 					}
 				}, 250));
+			},
+
+			resetScene: function(scope, scene) {
+			
+				scope.settings.stepCount = 0;
+				
+				for (let i = scene.children.length - 1; i >= 0; i--) {
+					let obj = scene.children[i];
+					scene.remove(obj);
+				}
+				
+				graphics.addFloor(scene);
+				scope.addTetrahedron();
+				graphics.setUpLights(scene);
+				graphics.setCameraLocation(camera, self.settings.defaultCameraLocation);
 			},
 
 			enableControls: function(controls, renderer, camera) {

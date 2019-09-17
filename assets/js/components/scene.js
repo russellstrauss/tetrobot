@@ -72,23 +72,6 @@ module.exports = function() {
 			animate(); 
 		},
 		
-		resetScene: function() {
-			
-			let self = this;
-			
-			self.settings.stepCount = 0;
-			
-			for (let i = scene.children.length - 1; i >= 0; i--) {
-				let obj = scene.children[i];
-				scene.remove(obj);
-			}
-			
-			graphics.addFloor(scene);
-			self.addTetrahedron();
-			graphics.setUpLights(scene);
-			graphics.setCameraLocation(camera, self.settings.defaultCameraLocation);
-		},
-		
 		goLeft: function(tetrahedronGeometry, bottomFace) {
 			
 			let self = this;
@@ -173,7 +156,7 @@ module.exports = function() {
 			
 			// Calculate which edge of the tetrahedron shares the previous step--the 'O' edge--by comparing which two vertices coincide
 			previousRollEdge = graphics.getSharedVertices(tetrahedronGeometry, bottomFace);
-			graphics.showPoints(previousRollEdge, 0x00ff00);
+			graphics.showPoints(previousRollEdge, scene, 0x00ff00);
 
 			bottomFace = graphics.getBottomFace(nextStep);
 			self.labelDirections(currentStep, bottomFace);
@@ -313,7 +296,7 @@ module.exports = function() {
 				}
 				if (event.keyCode === esc) {
 					
-					self.resetScene();
+					graphics.resetScene(self, scene);
 					
 					message.textContent = 'Reset scene';
 					setTimeout(function() {

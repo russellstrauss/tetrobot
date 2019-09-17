@@ -69,20 +69,6 @@ module.exports = function () {
 
       animate();
     },
-    resetScene: function resetScene() {
-      var self = this;
-      self.settings.stepCount = 0;
-
-      for (var i = scene.children.length - 1; i >= 0; i--) {
-        var obj = scene.children[i];
-        scene.remove(obj);
-      }
-
-      graphics.addFloor(scene);
-      self.addTetrahedron();
-      graphics.setUpLights(scene);
-      graphics.setCameraLocation(camera, self.settings.defaultCameraLocation);
-    },
     goLeft: function goLeft(tetrahedronGeometry, bottomFace) {
       var self = this;
       var geometry = tetrahedronGeometry.clone();
@@ -150,7 +136,7 @@ module.exports = function () {
 
 
       previousRollEdge = graphics.getSharedVertices(tetrahedronGeometry, bottomFace);
-      graphics.showPoints(previousRollEdge, 0x00ff00);
+      graphics.showPoints(previousRollEdge, scene, 0x00ff00);
       bottomFace = graphics.getBottomFace(nextStep);
       self.labelDirections(currentStep, bottomFace);
       self.settings.stepCount += 1;
@@ -255,7 +241,7 @@ module.exports = function () {
         }
 
         if (event.keyCode === esc) {
-          self.resetScene();
+          graphics.resetScene(self, scene);
           message.textContent = 'Reset scene';
           setTimeout(function () {
             message.textContent = '';
@@ -450,11 +436,11 @@ module.exports = function () {
         camera = new THREE.PerspectiveCamera(70, window.innerWidth / window.innerHeight, 1, 1000);
         return camera;
       },
-      showPoints: function showPoints(geometry, color, opacity) {
+      showPoints: function showPoints(geometry, scene, color, opacity) {
         var self = this;
 
         for (var i = 0; i < geometry.vertices.length; i++) {
-          graphics.showPoint(geometry.vertices[i], color, opacity);
+          graphics.showPoint(geometry.vertices[i], scene, color, opacity);
         }
       },
       showPoint: function showPoint(pt, scene, color, opacity) {
@@ -482,9 +468,9 @@ module.exports = function () {
       labelPoint: function labelPoint(pt, label, scene, color) {
         var self = this;
 
-        if (self.settings.font.enable) {
+        if (graphics.appSettings.font.enable) {
           color = color || 0xff0000;
-          var textGeometry = new THREE.TextGeometry(label, self.settings.font.fontStyle);
+          var textGeometry = new THREE.TextGeometry(label, self.appSettings.font.fontStyle);
           var textMaterial = new THREE.MeshBasicMaterial({
             color: color
           });
@@ -548,6 +534,19 @@ module.exports = function () {
             renderer.setSize(window.innerWidth, window.innerHeight);
           }
         }, 250));
+      },
+      resetScene: function resetScene(scope, scene) {
+        scope.settings.stepCount = 0;
+
+        for (var i = scene.children.length - 1; i >= 0; i--) {
+          var obj = scene.children[i];
+          scene.remove(obj);
+        }
+
+        graphics.addFloor(scene);
+        scope.addTetrahedron();
+        graphics.setUpLights(scene);
+        graphics.setCameraLocation(camera, self.settings.defaultCameraLocation);
       },
       enableControls: function enableControls(controls, renderer, camera) {
         controls = new THREE.OrbitControls(camera, renderer.domElement);
