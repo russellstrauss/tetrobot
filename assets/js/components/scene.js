@@ -27,22 +27,8 @@ module.exports = function() {
 	return {
 		
 		settings: {
-			activateLightHelpers: false,
-			axesHelper: {
-				activateAxesHelper: true,
-				axisLength: 10
-			},
 			tetrahedron: {
 				size: 5
-			},
-			font: {
-				enable: true,
-				fontStyle: {
-					font: null,
-					size: 1,
-					height: 0,
-					curveSegments: 1
-				}
 			},
 			defaultCameraLocation: {
 				x: -20,
@@ -50,8 +36,7 @@ module.exports = function() {
 				z: 20
 			},
 			stepCount: 0,
-			messageDuration: 2000,
-			errorLogging: false
+			messageDuration: 2000
 		},
 		
 		init: function() {
@@ -136,8 +121,8 @@ module.exports = function() {
 			scene.add(light2);
 			lights.push(light2)
 			
-			if (self.settings.activateLightHelpers) {
-				self.activateLightHelpers(lights);
+			if (graphics.appSettings.activateLightHelpers) {
+				graphics.activateLightHelpers(lights);
 			}
 		},
 
@@ -175,7 +160,7 @@ module.exports = function() {
 			renderer.setSize(window.innerWidth, window.innerHeight);
 			document.body.appendChild(renderer.domElement);
 
-			if (self.settings.axesHelper.activateAxesHelper) {
+			if (graphics.appSettings.axesHelper.activateAxesHelper) {
 
 				self.activateAxesHelper();
 			}
@@ -281,7 +266,7 @@ module.exports = function() {
 			}
 			
 			// Calculate which edge of the tetrahedron shares the previous step--the 'O' edge--by comparing which two vertices coincide
-			previousRollEdge = self.getSharedVertices(tetrahedronGeometry, bottomFace);
+			previousRollEdge = graphics.getSharedVertices(tetrahedronGeometry, bottomFace);
 			self.showPoints(previousRollEdge, 0x00ff00);
 
 			bottomFace = self.getBottomFace(nextStep);
@@ -333,7 +318,7 @@ module.exports = function() {
 			
 			tetrahedronGeometry.vertices.forEach(function(vertex) {
 				
-				if (self.roundHundreths(vertex.y) === 0) { // Relies on there being no rounding errors
+				if (utils.roundHundreths(vertex.y) === 0) { // Relies on there being no rounding errors
 					
 					bottomFace.vertices.push(vertex);
 				}
@@ -527,29 +512,8 @@ module.exports = function() {
 		activateAxesHelper: function() {
 			
 			let self = this;
-			let axesHelper = new THREE.AxesHelper(self.settings.axesHelper.axisLength);
+			let axesHelper = new THREE.AxesHelper(graphics.appSettings.axesHelper.axisLength);
 			scene.add(axesHelper);
-		},
-
-		getSharedVertices: function(geometry1, geometry2) {
-
-			let self = this;
-
-			let result = new THREE.Geometry();
-			geometry1.vertices.forEach(function(geometry1Vertex) {
-				
-				geometry2.vertices.forEach(function(geometry2Vertex) {
-					
-					if (self.roundHundreths(geometry1Vertex.x) === self.roundHundreths(geometry2Vertex.x) && 
-						self.roundHundreths(geometry1Vertex.y) === self.roundHundreths(geometry2Vertex.y) &&
-						self.roundHundreths(geometry1Vertex.z) === self.roundHundreths(geometry2Vertex.z))
-					{
-						result.vertices.push(geometry2Vertex);
-					}
-				});
-			});
-
-			return result;
 		},
 		
 		getAngleBetweenVectors: function(vector1, vector2) {
@@ -567,7 +531,7 @@ module.exports = function() {
 			let midpoints = [];
 
 			// Get shared edge with parameters and set midpoint to O
-			let oppositeEdge = self.getSharedVertices(triangleGeometry, bottomFace);
+			let oppositeEdge = graphics.getSharedVertices(triangleGeometry, bottomFace);
 			let oppositeMidpoint = self.getMidpoint(oppositeEdge.vertices[0], oppositeEdge.vertices[1]);
 			self.showPoint(oppositeMidpoint, black)
 			self.labelPoint(oppositeMidpoint, 'O', black);
@@ -590,30 +554,6 @@ module.exports = function() {
 			// }
 		},
 		
-		labelAxes: function() {
-			
-			let self = this;
-			if (self.settings.font.enable) {
-				let textGeometry = new THREE.TextGeometry('Y', self.settings.font.fontStyle);
-				let textMaterial = new THREE.MeshBasicMaterial({ color: 0x00ff00 });
-				let mesh = new THREE.Mesh(textGeometry, textMaterial);
-				textGeometry.translate(0, self.settings.axesHelper.axisLength, 0);
-				scene.add(mesh);
-				
-				textGeometry = new THREE.TextGeometry('X', self.settings.font.fontStyle);
-				textMaterial = new THREE.MeshBasicMaterial({ color: 0xff0000 });
-				mesh = new THREE.Mesh(textGeometry, textMaterial);
-				textGeometry.translate(self.settings.axesHelper.axisLength, 0, 0);
-				scene.add(mesh);
-				
-				textGeometry = new THREE.TextGeometry('Z', self.settings.font.fontStyle);
-				textMaterial = new THREE.MeshBasicMaterial({ color: 0x0000ff });
-				mesh = new THREE.Mesh(textGeometry, textMaterial);
-				textGeometry.translate(0, 0, self.settings.axesHelper.axisLength);
-				scene.add(mesh);
-			}
-		},
-		
 		loadFont: function() {
 			
 			let self = this;
@@ -623,18 +563,18 @@ module.exports = function() {
 
 			loader.load(fontPath, function(font) { // success event
 				
-				if (self.settings.errorLogging) console.log('Fonts loaded successfully.');
-				self.settings.font.fontStyle.font = font;
+				if (graphics.appSettings.errorLogging) console.log('Fonts loaded successfully.');
+				graphics.appSettings.font.fontStyle.font = font;
 				
 				self.begin();
-				if (self.settings.axesHelper.activateAxesHelper) self.labelAxes();
+				if (graphics.appSettings.axesHelper.activateAxesHelper) self.labelAxes();
 			},
 			function(event) { // in progress event.
-				if (self.settings.errorLogging) console.log('Attempting to load font JSON now...');
+				if (graphics.appSettings.errorLogging) console.log('Attempting to load font JSON now...');
 			},
 			function(event) { // error event
 				
-				if (self.settings.errorLogging) console.log('Error loading fonts. Webserver required due to CORS policy.');
+				if (graphics.appSettings.errorLogging) console.log('Error loading fonts. Webserver required due to CORS policy.');
 				self.settings.font.enable = false;
 				self.begin();
 			});
@@ -717,9 +657,29 @@ module.exports = function() {
 				}
 			});
 		},
-		
-		roundHundreths: function(num) {
-			return Math.round(num * 100) / 100;
+
+		labelAxes: function() {
+			
+			let self = this;
+			if (graphics.appSettings.font.enable) {
+				let textGeometry = new THREE.TextGeometry('Y', graphics.appSettings.font.fontStyle);
+				let textMaterial = new THREE.MeshBasicMaterial({ color: 0x00ff00 });
+				let mesh = new THREE.Mesh(textGeometry, textMaterial);
+				textGeometry.translate(0, graphics.appSettings.axesHelper.axisLength, 0);
+				scene.add(mesh);
+				
+				textGeometry = new THREE.TextGeometry('X', graphics.appSettings.font.fontStyle);
+				textMaterial = new THREE.MeshBasicMaterial({ color: 0xff0000 });
+				mesh = new THREE.Mesh(textGeometry, textMaterial);
+				textGeometry.translate(graphics.appSettings.axesHelper.axisLength, 0, 0);
+				scene.add(mesh);
+				
+				textGeometry = new THREE.TextGeometry('Z', graphics.appSettings.font.fontStyle);
+				textMaterial = new THREE.MeshBasicMaterial({ color: 0x0000ff });
+				mesh = new THREE.Mesh(textGeometry, textMaterial);
+				textGeometry.translate(0, 0, graphics.appSettings.axesHelper.axisLength);
+				scene.add(mesh);
+			}
 		}
 	}
 }

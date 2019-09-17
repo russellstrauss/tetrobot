@@ -110,6 +110,10 @@
 			rotate: function(array) {
 				array.push(array.shift());
 				return array;
+			},
+
+			roundHundreths: function(num) {
+				return Math.round(num * 100) / 100;
 			}
 		}
 	})();
