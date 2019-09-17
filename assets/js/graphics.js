@@ -24,6 +24,32 @@
 				errorLogging: false
 			},
 
+			activateAxesHelper: function(scene) {
+			
+				let self = this;
+				let axesHelper = new THREE.AxesHelper(graphics.appSettings.axesHelper.axisLength);
+				scene.add(axesHelper);
+			},
+
+			addFloor: function(scene) {
+				
+				console.log(scene);
+
+				var planeGeometry = new THREE.PlaneBufferGeometry(100, 100);
+				planeGeometry.rotateX(-Math.PI / 2);
+				var planeMaterial = new THREE.ShadowMaterial({ opacity: 0.2 });
+	
+				var plane = new THREE.Mesh(planeGeometry, planeMaterial);
+				plane.position.y = -1;
+				plane.receiveShadow = true;
+				scene.add(plane);
+	
+				var helper = new THREE.GridHelper(1000, 100);
+				helper.material.opacity = .25;
+				helper.material.transparent = true;
+				scene.add(helper);
+			},
+
 			createVector: function(pt1, pt2) {
 				return new THREE.Vector3(pt2.x - pt1.x, pt2.y - pt2.y, pt2.z - pt1.z);
 			},
@@ -85,6 +111,16 @@
 				});
 				
 				return bottomFace;
+			},
+
+			getCentroidOfBottomFace: function(tetrahedronGeometry) {
+			
+				let centroidOfBottomFace = {};
+				centroidOfBottomFace.x = (tetrahedronGeometry.vertices[0].x + tetrahedronGeometry.vertices[1].x + tetrahedronGeometry.vertices[3].x) / 3;
+				centroidOfBottomFace.y = (tetrahedronGeometry.vertices[0].y + tetrahedronGeometry.vertices[1].y + tetrahedronGeometry.vertices[3].y) / 3;
+				centroidOfBottomFace.z = (tetrahedronGeometry.vertices[0].z + tetrahedronGeometry.vertices[1].z + tetrahedronGeometry.vertices[3].z) / 3;
+				
+				return centroidOfBottomFace;
 			},
 
 			rotatePointAboutLine: function(pt, axisPt1, axisPt2, angle) {
@@ -164,6 +200,21 @@
 				return geometry;
 			},
 
+			setUpScene: function(scene, camera, renderer) {
+
+				scene = new THREE.Scene();
+				scene.background = new THREE.Color(0xf0f0f0);
+				camera = new THREE.PerspectiveCamera(70, window.innerWidth / window.innerHeight, 1, 1000);
+				renderer = new THREE.WebGLRenderer();
+				renderer.setSize(window.innerWidth, window.innerHeight);
+				document.body.appendChild(renderer.domElement);
+	
+				if (graphics.appSettings.axesHelper.activateAxesHelper) {
+	
+					graphics.activateAxesHelper(scene);
+				}
+			},
+
 			showPoints: function(geometry, color, opacity) {
 			
 				let self = this;
@@ -225,6 +276,62 @@
 			
 				let squirt = Math.pow((pt2.x - pt1.x), 2) + Math.pow((pt2.y - pt1.y), 2) + Math.pow((pt2.z - pt1.z), 2);
 				return Math.sqrt(squirt);
+			},
+
+			labelAxes: function(scene) {
+			
+				let self = this;
+				if (graphics.appSettings.font.enable) {
+					let textGeometry = new THREE.TextGeometry('Y', graphics.appSettings.font.fontStyle);
+					let textMaterial = new THREE.MeshBasicMaterial({ color: 0x00ff00 });
+					let mesh = new THREE.Mesh(textGeometry, textMaterial);
+					textGeometry.translate(0, graphics.appSettings.axesHelper.axisLength, 0);
+					scene.add(mesh);
+					
+					textGeometry = new THREE.TextGeometry('X', graphics.appSettings.font.fontStyle);
+					textMaterial = new THREE.MeshBasicMaterial({ color: 0xff0000 });
+					mesh = new THREE.Mesh(textGeometry, textMaterial);
+					textGeometry.translate(graphics.appSettings.axesHelper.axisLength, 0, 0);
+					scene.add(mesh);
+					
+					textGeometry = new THREE.TextGeometry('Z', graphics.appSettings.font.fontStyle);
+					textMaterial = new THREE.MeshBasicMaterial({ color: 0x0000ff });
+					mesh = new THREE.Mesh(textGeometry, textMaterial);
+					textGeometry.translate(0, 0, graphics.appSettings.axesHelper.axisLength);
+					scene.add(mesh);
+				}
+			},
+
+			setCameraLocation: function(camera, pt) {
+				camera.position.x = pt.x;
+				camera.position.y = pt.y;
+				camera.position.z = pt.z;
+			},
+
+			resizeRendererOnWindowResize: function(renderer, camera) {
+
+				window.addEventListener('resize', utils.debounce(function() {
+					
+					if (renderer) {
+		
+						camera.aspect = window.innerWidth / window.innerHeight;
+						camera.updateProjectionMatrix();
+						renderer.setSize(window.innerWidth, window.innerHeight);
+					}
+				}, 250));
+			},
+
+			enableControls: function(controls, renderer, camera) {
+				controls = new THREE.OrbitControls(camera, renderer.domElement);
+				controls.target.set(0, 0, 0);
+				controls.enableDamping = true; // an animation loop is required when either damping or auto-rotation are enabled
+				controls.dampingFactor = 0.05;
+				controls.zoomSpeed = 6;
+				controls.enablePan = !utils.mobile();
+				controls.minDistance = 10;
+				controls.maxDistance = 100;
+				controls.maxPolarAngle = Math.PI / 2;
+				return controls;
 			},
 		}
 	})();

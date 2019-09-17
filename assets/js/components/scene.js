@@ -51,13 +51,13 @@ module.exports = function() {
 			let self = this;
 			
 			self.setUpScene();
-			self.addFloor();
+			graphics.addFloor(scene);
 			self.enableStats();
-			self.enableControls();
-			self.resizeRendererOnWindowResize();
+			controls = graphics.enableControls(controls, renderer, camera);
+			graphics.resizeRendererOnWindowResize(renderer, camera);
 			self.setUpLights();
 			self.addTetrahedron();
-			self.setCameraLocation(self.settings.defaultCameraLocation);
+			graphics.setCameraLocation(camera, self.settings.defaultCameraLocation);
 			
 			var animate = function() {
 
@@ -68,37 +68,6 @@ module.exports = function() {
 			};
 			
 			animate(); 
-		},
-		
-		setCameraLocation: function(pt) {
-			camera.position.x = pt.x;
-			camera.position.y = pt.y;
-			camera.position.z = pt.z;
-		},
-
-		resizeRendererOnWindowResize: function() {
-
-			window.addEventListener('resize', utils.debounce(function() {
-				
-				if (renderer) {
-	
-					camera.aspect = window.innerWidth / window.innerHeight;
-					camera.updateProjectionMatrix();
-					renderer.setSize(window.innerWidth, window.innerHeight);
-				}
-			}, 250));
-		},
-
-		enableControls: function() {
-			controls = new THREE.OrbitControls(camera, renderer.domElement);
-			controls.target.set(0, 0, 0);
-			controls.enableDamping = true; // an animation loop is required when either damping or auto-rotation are enabled
-			controls.dampingFactor = 0.05;
-			controls.zoomSpeed = 6;
-			controls.enablePan = !utils.mobile();
-			controls.minDistance = 10;
-			controls.maxDistance = 100;
-			controls.maxPolarAngle = Math.PI / 2;
 		},
 
 		enableStats: function() {
@@ -134,22 +103,6 @@ module.exports = function() {
 			}
 		},
 
-		addFloor: function() {
-			var planeGeometry = new THREE.PlaneBufferGeometry(100, 100);
-			planeGeometry.rotateX(-Math.PI / 2);
-			var planeMaterial = new THREE.ShadowMaterial({ opacity: 0.2 });
-
-			var plane = new THREE.Mesh(planeGeometry, planeMaterial);
-			plane.position.y = -1;
-			plane.receiveShadow = true;
-			scene.add(plane);
-
-			var helper = new THREE.GridHelper(1000, 100);
-			helper.material.opacity = .25;
-			helper.material.transparent = true;
-			scene.add(helper);
-		},
-
 		setUpScene: function() {
 
 			let self = this;
@@ -162,7 +115,7 @@ module.exports = function() {
 
 			if (graphics.appSettings.axesHelper.activateAxesHelper) {
 
-				self.activateAxesHelper();
+				graphics.activateAxesHelper(scene);
 			}
 		},
 		
@@ -177,10 +130,10 @@ module.exports = function() {
 				scene.remove(obj);
 			}
 			
-			self.addFloor();
+			graphics.addFloor(scene);
 			self.addTetrahedron();
 			self.setUpLights();
-			self.setCameraLocation(self.settings.defaultCameraLocation);
+			graphics.setCameraLocation(camera, self.settings.defaultCameraLocation);
 		},
 		
 		goLeft: function(tetrahedronGeometry, bottomFace) {
@@ -283,7 +236,7 @@ module.exports = function() {
 			tetrahedronGeometry.applyMatrix( new THREE.Matrix4().makeRotationAxis( new THREE.Vector3( 1, 0, -1 ).normalize(), Math.atan( Math.sqrt(2)) ) ); // Rotate to be flat on floor
 			tetrahedronGeometry.rotateY(Math.PI/4); // rotate to line up with x-axis
 			
-			let centroidOfBottomFace = self.getCentroidOfBottomFace(tetrahedronGeometry);
+			let centroidOfBottomFace = graphics.getCentroidOfBottomFace(tetrahedronGeometry);
 			let tetrahedronHeight = graphics.getDistance(centroidOfBottomFace, tetrahedronGeometry.vertices[2]);
 			
 			tetrahedronGeometry.translate(0 , tetrahedronHeight / 4, 0);
@@ -321,16 +274,6 @@ module.exports = function() {
 			return triangleGeometry;
 		},
 		
-		getCentroidOfBottomFace: function(tetrahedronGeometry) {
-			
-			let centroidOfBottomFace = {};
-			centroidOfBottomFace.x = (tetrahedronGeometry.vertices[0].x + tetrahedronGeometry.vertices[1].x + tetrahedronGeometry.vertices[3].x) / 3;
-			centroidOfBottomFace.y = (tetrahedronGeometry.vertices[0].y + tetrahedronGeometry.vertices[1].y + tetrahedronGeometry.vertices[3].y) / 3;
-			centroidOfBottomFace.z = (tetrahedronGeometry.vertices[0].z + tetrahedronGeometry.vertices[1].z + tetrahedronGeometry.vertices[3].z) / 3;
-			
-			return centroidOfBottomFace;
-		},
-		
 		getCentroid: function(geometry) { // Calculating centroid of a tetrahedron: https://www.youtube.com/watch?v=Infxzuqd_F4
 			
 			let result = {};
@@ -348,13 +291,6 @@ module.exports = function() {
 			z = z / 4;
 			result = { x: x, y: y, z: z};
 			return result;
-		},
-		
-		activateAxesHelper: function() {
-			
-			let self = this;
-			let axesHelper = new THREE.AxesHelper(graphics.appSettings.axesHelper.axisLength);
-			scene.add(axesHelper);
 		},
 		
 		getAngleBetweenVectors: function(vector1, vector2) {
@@ -408,7 +344,7 @@ module.exports = function() {
 				graphics.appSettings.font.fontStyle.font = font;
 				
 				self.begin();
-				if (graphics.appSettings.axesHelper.activateAxesHelper) self.labelAxes();
+				if (graphics.appSettings.axesHelper.activateAxesHelper) graphics.labelAxes(scene);
 			},
 			function(event) { // in progress event.
 				if (graphics.appSettings.errorLogging) console.log('Attempting to load font JSON now...');
@@ -470,30 +406,6 @@ module.exports = function() {
 					}, self.settings.messageDuration);
 				}
 			});
-		},
-
-		labelAxes: function() {
-			
-			let self = this;
-			if (graphics.appSettings.font.enable) {
-				let textGeometry = new THREE.TextGeometry('Y', graphics.appSettings.font.fontStyle);
-				let textMaterial = new THREE.MeshBasicMaterial({ color: 0x00ff00 });
-				let mesh = new THREE.Mesh(textGeometry, textMaterial);
-				textGeometry.translate(0, graphics.appSettings.axesHelper.axisLength, 0);
-				scene.add(mesh);
-				
-				textGeometry = new THREE.TextGeometry('X', graphics.appSettings.font.fontStyle);
-				textMaterial = new THREE.MeshBasicMaterial({ color: 0xff0000 });
-				mesh = new THREE.Mesh(textGeometry, textMaterial);
-				textGeometry.translate(graphics.appSettings.axesHelper.axisLength, 0, 0);
-				scene.add(mesh);
-				
-				textGeometry = new THREE.TextGeometry('Z', graphics.appSettings.font.fontStyle);
-				textMaterial = new THREE.MeshBasicMaterial({ color: 0x0000ff });
-				mesh = new THREE.Mesh(textGeometry, textMaterial);
-				textGeometry.translate(0, 0, graphics.appSettings.axesHelper.axisLength);
-				scene.add(mesh);
-			}
 		}
 	}
 }
