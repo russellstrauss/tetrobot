@@ -165,8 +165,8 @@ module.exports = function () {
     goLeft: function goLeft(tetrahedronGeometry, bottomFace) {
       var self = this;
       var geometry = tetrahedronGeometry.clone();
-      geometry = self.rotateGeometryAboutLine(geometry, bottomFace.vertices[2], bottomFace.vertices[1], -1.910633236249); // self.showPoint(bottomFace.vertices[2], distinctColors[self.settings.stepCount]);
-      // self.showPoint(bottomFace.vertices[1], distinctColors[self.settings.stepCount]);
+      geometry = graphics.rotateGeometryAboutLine(geometry, bottomFace.vertices[2], bottomFace.vertices[1], -1.910633236249); // graphics.showPoint(bottomFace.vertices[2], distinctColors[self.settings.stepCount]);
+      // graphics.showPoint(bottomFace.vertices[1], distinctColors[self.settings.stepCount]);
 
       var material = new THREE.MeshBasicMaterial({
         wireframe: true,
@@ -179,8 +179,8 @@ module.exports = function () {
     goRight: function goRight(tetrahedronGeometry, bottomFace) {
       var self = this;
       var geometry = tetrahedronGeometry.clone();
-      geometry = self.rotateGeometryAboutLine(geometry, bottomFace.vertices[0], bottomFace.vertices[1], 1.910633236249); // self.showPoint(bottomFace.vertices[0], distinctColors[self.settings.stepCount]);
-      // self.showPoint(bottomFace.vertices[1], distinctColors[self.settings.stepCount]);
+      geometry = graphics.rotateGeometryAboutLine(geometry, bottomFace.vertices[0], bottomFace.vertices[1], 1.910633236249); // graphics.showPoint(bottomFace.vertices[0], distinctColors[self.settings.stepCount]);
+      // graphics.showPoint(bottomFace.vertices[1], distinctColors[self.settings.stepCount]);
 
       var material = new THREE.MeshBasicMaterial({
         wireframe: true,
@@ -190,10 +190,10 @@ module.exports = function () {
       scene.add(mesh); // rotate so next move is correct
 
       var centroid = self.getCentroid(geometry);
-      var top = self.getHighestVertex(geometry);
-      self.drawLine(centroid, top);
-      geometry = self.rotateGeometryAboutLine(geometry, centroid, top, 2 * Math.PI / 3);
-      bottomFace = self.rotateGeometryAboutLine(bottomFace, centroid, top, 4 * Math.PI / 3);
+      var top = graphics.getHighestVertex(geometry);
+      graphics.drawLine(centroid, top, scene);
+      geometry = graphics.rotateGeometryAboutLine(geometry, centroid, top, 2 * Math.PI / 3);
+      bottomFace = graphics.rotateGeometryAboutLine(bottomFace, centroid, top, 4 * Math.PI / 3);
       return geometry;
     },
     getDirectionVector: function getDirectionVector(oppositeMidpoint, top) {
@@ -201,12 +201,12 @@ module.exports = function () {
       top.y = 0;
       currentStep.direction = new THREE.Vector3(); //currentStep.direction.subVectors(top, oppositeMidpoint).normalize();
 
-      self.drawLine(oppositeMidpoint, top);
+      graphics.drawLine(oppositeMidpoint, top, scene);
     },
     goBack: function goBack(tetrahedronGeometry, bottomFace) {
       var self = this;
       var geometry = tetrahedronGeometry.clone();
-      geometry = self.rotateGeometryAboutLine(geometry, bottomFace.vertices[2], bottomFace.vertices[0], 1.910633236249);
+      geometry = graphics.rotateGeometryAboutLine(geometry, bottomFace.vertices[2], bottomFace.vertices[0], 1.910633236249);
       var material = new THREE.MeshBasicMaterial({
         wireframe: true,
         color: distinctColors[self.settings.stepCount]
@@ -217,7 +217,7 @@ module.exports = function () {
     },
     step: function step(tetrahedronGeometry, direction) {
       var self = this;
-      var bottomFace = self.getBottomFace(tetrahedronGeometry);
+      var bottomFace = graphics.getBottomFace(tetrahedronGeometry);
 
       if (direction === 'L') {
         nextStep = self.goLeft(tetrahedronGeometry, bottomFace);
@@ -229,8 +229,8 @@ module.exports = function () {
 
 
       previousRollEdge = graphics.getSharedVertices(tetrahedronGeometry, bottomFace);
-      self.showPoints(previousRollEdge, 0x00ff00);
-      bottomFace = self.getBottomFace(nextStep);
+      graphics.showPoints(previousRollEdge, 0x00ff00);
+      bottomFace = graphics.getBottomFace(nextStep);
       self.labelDirections(currentStep, bottomFace);
       self.settings.stepCount += 1;
       return nextStep;
@@ -243,15 +243,15 @@ module.exports = function () {
       tetrahedronGeometry.rotateY(Math.PI / 4); // rotate to line up with x-axis
 
       var centroidOfBottomFace = self.getCentroidOfBottomFace(tetrahedronGeometry);
-      var tetrahedronHeight = self.getDistance(centroidOfBottomFace, tetrahedronGeometry.vertices[2]);
+      var tetrahedronHeight = graphics.getDistance(centroidOfBottomFace, tetrahedronGeometry.vertices[2]);
       tetrahedronGeometry.translate(0, tetrahedronHeight / 4, 0);
-      triangleGeometry = self.getBottomFace(tetrahedronGeometry);
+      triangleGeometry = graphics.getBottomFace(tetrahedronGeometry);
       var startingGeometry = tetrahedronGeometry.clone();
 
       for (var i = 0; i < tetrahedronGeometry.vertices.length; i++) {
         var colors = [0xCE3611, 0x00CE17, 0x03BAEE, 0x764E8C]; // 				[red, 		green, 		blue, 		purple]
 
-        tetrahedronGeometry.verticesNeedUpdate = true; //self.showPoint(tetrahedronGeometry.vertices[i], colors[i]);
+        tetrahedronGeometry.verticesNeedUpdate = true; //graphics.showPoint(tetrahedronGeometry.vertices[i], colors[i]);
       }
 
       tetrahedron = new THREE.Mesh(tetrahedronGeometry, shadeMaterial);
@@ -259,134 +259,6 @@ module.exports = function () {
       var ogTetrahedron = new THREE.Mesh(startingGeometry, wireframeMaterial);
       scene.add(ogTetrahedron);
       currentStep = startingGeometry; //self.labelDirections(triangleGeometry);
-    },
-    getBottomFace: function getBottomFace(tetrahedronGeometry) {
-      var self = this;
-      var bottomFace = new THREE.Geometry();
-      tetrahedronGeometry.vertices.forEach(function (vertex) {
-        if (utils.roundHundreths(vertex.y) === 0) {
-          // Relies on there being no rounding errors
-          bottomFace.vertices.push(vertex);
-        }
-      });
-      return bottomFace;
-    },
-    rotatePointAboutLine: function rotatePointAboutLine(pt, axisPt1, axisPt2, angle) {
-      var self = this; // uncomment to visualize endpoints of rotation axis
-      // self.showPoint(axisPt1, new THREE.Color('red'));
-      // self.showPoint(axisPt2, new THREE.Color('red'));
-
-      var u = new THREE.Vector3(0, 0, 0),
-          rotation1 = new THREE.Vector3(0, 0, 0),
-          rotation2 = new THREE.Vector3(0, 0, 0);
-      var d = 0.0; // Move rotation axis to origin
-
-      rotation1.x = pt.x - axisPt1.x;
-      rotation1.y = pt.y - axisPt1.y;
-      rotation1.z = pt.z - axisPt1.z; // Get unit vector equivalent to rotation axis
-
-      u.x = axisPt2.x - axisPt1.x;
-      u.y = axisPt2.y - axisPt1.y;
-      u.z = axisPt2.z - axisPt1.z;
-      u.normalize();
-      d = Math.sqrt(u.y * u.y + u.z * u.z); // Rotation onto first plane
-
-      if (d != 0) {
-        rotation2.x = rotation1.x;
-        rotation2.y = rotation1.y * u.z / d - rotation1.z * u.y / d;
-        rotation2.z = rotation1.y * u.y / d + rotation1.z * u.z / d;
-      } else {
-        rotation2 = rotation1;
-      } // Rotation rotation onto second plane
-
-
-      rotation1.x = rotation2.x * d - rotation2.z * u.x;
-      rotation1.y = rotation2.y;
-      rotation1.z = rotation2.x * u.x + rotation2.z * d; // Oriented to axis, now perform original rotation
-
-      rotation2.x = rotation1.x * Math.cos(angle) - rotation1.y * Math.sin(angle);
-      rotation2.y = rotation1.x * Math.sin(angle) + rotation1.y * Math.cos(angle);
-      rotation2.z = rotation1.z; // Undo rotation 1
-
-      rotation1.x = rotation2.x * d + rotation2.z * u.x;
-      rotation1.y = rotation2.y;
-      rotation1.z = -rotation2.x * u.x + rotation2.z * d; // Undo rotation 2
-
-      if (d != 0) {
-        rotation2.x = rotation1.x;
-        rotation2.y = rotation1.y * u.z / d + rotation1.z * u.y / d;
-        rotation2.z = -rotation1.y * u.y / d + rotation1.z * u.z / d;
-      } else {
-        rotation2 = rotation1;
-      } // Move back into place
-
-
-      rotation1.x = rotation2.x + axisPt1.x;
-      rotation1.y = rotation2.y + axisPt1.y;
-      rotation1.z = rotation2.z + axisPt1.z;
-      return rotation1;
-    },
-    rotateGeometryAboutLine: function rotateGeometryAboutLine(geometry, axisPt1, axisPt2, angle) {
-      var self = this;
-
-      for (var i = 0; i < geometry.vertices.length; i++) {
-        geometry.vertices[i] = self.rotatePointAboutLine(geometry.vertices[i], axisPt1, axisPt2, angle);
-      }
-
-      return geometry;
-    },
-    showPoints: function showPoints(geometry, color, opacity) {
-      var self = this;
-
-      for (var i = 0; i < geometry.vertices.length; i++) {
-        self.showPoint(geometry.vertices[i], color, opacity);
-      }
-    },
-    showPoint: function showPoint(pt, color, opacity) {
-      color = color || 0xff0000;
-      opacity = opacity || 1;
-      var dotGeometry = new THREE.Geometry();
-      dotGeometry.vertices.push(new THREE.Vector3(pt.x, pt.y, pt.z));
-      var dotMaterial = new THREE.PointsMaterial({
-        size: 10,
-        sizeAttenuation: false,
-        color: color,
-        opacity: opacity,
-        transparent: true
-      });
-      var dot = new THREE.Points(dotGeometry, dotMaterial);
-      scene.add(dot);
-    },
-    showVector: function showVector(vector, origin, color) {
-      color = color || 0xff0000;
-      var arrowHelper = new THREE.ArrowHelper(vector, origin, vector.length(), color);
-      scene.add(arrowHelper);
-    },
-    drawLine: function drawLine(pt1, pt2) {
-      var material = new THREE.LineBasicMaterial({
-        color: 0x0000ff
-      });
-      var geometry = new THREE.Geometry();
-      geometry.vertices.push(new THREE.Vector3(pt1.x, pt1.y, pt1.z));
-      geometry.vertices.push(new THREE.Vector3(pt2.x, pt2.y, pt2.z));
-      var line = new THREE.Line(geometry, material);
-      scene.add(line);
-    },
-    drawVector: function drawVector() {},
-    getDistance: function getDistance(pt1, pt2) {
-      // create point class?
-      var squirt = Math.pow(pt2.x - pt1.x, 2) + Math.pow(pt2.y - pt1.y, 2) + Math.pow(pt2.z - pt1.z, 2);
-      return Math.sqrt(squirt);
-    },
-    createVector: function createVector(pt1, pt2) {
-      return new THREE.Vector3(pt2.x - pt1.x, pt2.y - pt2.y, pt2.z - pt1.z);
-    },
-    getMidpoint: function getMidpoint(pt1, pt2) {
-      var midpoint = {};
-      midpoint.x = (pt1.x + pt2.x) / 2;
-      midpoint.y = (pt1.y + pt2.y) / 2;
-      midpoint.z = (pt1.z + pt2.z) / 2;
-      return midpoint;
     },
     createTriangle: function createTriangle(pt1, pt2, pt3) {
       // return geometry
@@ -445,18 +317,18 @@ module.exports = function () {
       var midpoints = []; // Get shared edge with parameters and set midpoint to O
 
       var oppositeEdge = graphics.getSharedVertices(triangleGeometry, bottomFace);
-      var oppositeMidpoint = self.getMidpoint(oppositeEdge.vertices[0], oppositeEdge.vertices[1]);
-      self.showPoint(oppositeMidpoint, black);
-      self.labelPoint(oppositeMidpoint, 'O', black);
+      var oppositeMidpoint = graphics.getMidpoint(oppositeEdge.vertices[0], oppositeEdge.vertices[1]);
+      graphics.showPoint(oppositeMidpoint, scene, black);
+      graphics.labelPoint(oppositeMidpoint, 'O', scene, black);
       currentStep.oppositeEdge = oppositeEdge;
-      currentStep.direction = self.getDirectionVector(oppositeMidpoint, self.getHighestVertex(currentStep)); // midpoints.push(self.getMidpoint(triangleGeometry.vertices[0], triangleGeometry.vertices[1]));
-      // midpoints.push(self.getMidpoint(triangleGeometry.vertices[1], triangleGeometry.vertices[2]));
-      // midpoints.push(self.getMidpoint(triangleGeometry.vertices[2], triangleGeometry.vertices[0]));
+      currentStep.direction = self.getDirectionVector(oppositeMidpoint, graphics.getHighestVertex(currentStep)); // midpoints.push(graphics.getMidpoint(triangleGeometry.vertices[0], triangleGeometry.vertices[1]));
+      // midpoints.push(graphics.getMidpoint(triangleGeometry.vertices[1], triangleGeometry.vertices[2]));
+      // midpoints.push(graphics.getMidpoint(triangleGeometry.vertices[2], triangleGeometry.vertices[0]));
       // let labels = ['R', 'L','O'];
       // let colors = [new THREE.Color( 'black' ), new THREE.Color( 'black' ), new THREE.Color( 'black' )]; 
       // for (let i = 0; i < midpoints.length; i++) {
-      // 	self.showPoint(midpoints[i], colors[i]);
-      // 	self.labelPoint(midpoints[i], labels[i], new THREE.Color(0x000000));
+      // 	graphics.showPoint(midpoints[i], colors[i]);
+      // 	graphics.labelPoint(midpoints[i], labels[i], scene, new THREE.Color(0x000000));
       // }
     },
     loadFont: function loadFont() {
@@ -479,32 +351,6 @@ module.exports = function () {
         self.settings.font.enable = false;
         self.begin();
       });
-    },
-
-    /* 	Inputs: pt - point in space to label, in the form of object with x, y, and z properties; label - text content for label; color - optional */
-    labelPoint: function labelPoint(pt, label, color) {
-      var self = this;
-
-      if (self.settings.font.enable) {
-        color = color || 0xff0000;
-        var textGeometry = new THREE.TextGeometry(label, self.settings.font.fontStyle);
-        var textMaterial = new THREE.MeshBasicMaterial({
-          color: color
-        });
-        var mesh = new THREE.Mesh(textGeometry, textMaterial);
-        textGeometry.translate(pt.x, pt.y, pt.z);
-        scene.add(mesh);
-      }
-    },
-    getHighestVertex: function getHighestVertex(geometry) {
-      var self = this;
-      var highest = new THREE.Vector3();
-      geometry.vertices.forEach(function (vertex) {
-        if (vertex.y > highest.y) {
-          highest = vertex;
-        }
-      });
-      return highest;
     },
     setUpButtons: function setUpButtons() {
       var self = this;
@@ -603,6 +449,9 @@ module.exports = function () {
         },
         errorLogging: false
       },
+      createVector: function createVector(pt1, pt2) {
+        return new THREE.Vector3(pt2.x - pt1.x, pt2.y - pt2.y, pt2.z - pt1.z);
+      },
       getSharedVertices: function getSharedVertices(geometry1, geometry2) {
         var result = new THREE.Geometry();
         geometry1.vertices.forEach(function (geometry1Vertex) {
@@ -614,32 +463,155 @@ module.exports = function () {
         });
         return result;
       },
-      labelAxes: function labelAxes() {
+      getHighestVertex: function getHighestVertex(geometry) {
+        var self = this;
+        var highest = new THREE.Vector3();
+        geometry.vertices.forEach(function (vertex) {
+          if (vertex.y > highest.y) {
+            highest = vertex;
+          }
+        });
+        return highest;
+      },
+      getMidpoint: function getMidpoint(pt1, pt2) {
+        var midpoint = {};
+        midpoint.x = (pt1.x + pt2.x) / 2;
+        midpoint.y = (pt1.y + pt2.y) / 2;
+        midpoint.z = (pt1.z + pt2.z) / 2;
+        return midpoint;
+      },
+      getBottomFace: function getBottomFace(tetrahedronGeometry) {
+        var self = this;
+        var bottomFace = new THREE.Geometry();
+        tetrahedronGeometry.vertices.forEach(function (vertex) {
+          if (utils.roundHundreths(vertex.y) === 0) {
+            // Relies on there being no rounding errors
+            bottomFace.vertices.push(vertex);
+          }
+        });
+        return bottomFace;
+      },
+      rotatePointAboutLine: function rotatePointAboutLine(pt, axisPt1, axisPt2, angle) {
+        var self = this; // uncomment to visualize endpoints of rotation axis
+        // self.showPoint(axisPt1, new THREE.Color('red'));
+        // self.showPoint(axisPt2, new THREE.Color('red'));
+
+        var u = new THREE.Vector3(0, 0, 0),
+            rotation1 = new THREE.Vector3(0, 0, 0),
+            rotation2 = new THREE.Vector3(0, 0, 0);
+        var d = 0.0; // Move rotation axis to origin
+
+        rotation1.x = pt.x - axisPt1.x;
+        rotation1.y = pt.y - axisPt1.y;
+        rotation1.z = pt.z - axisPt1.z; // Get unit vector equivalent to rotation axis
+
+        u.x = axisPt2.x - axisPt1.x;
+        u.y = axisPt2.y - axisPt1.y;
+        u.z = axisPt2.z - axisPt1.z;
+        u.normalize();
+        d = Math.sqrt(u.y * u.y + u.z * u.z); // Rotation onto first plane
+
+        if (d != 0) {
+          rotation2.x = rotation1.x;
+          rotation2.y = rotation1.y * u.z / d - rotation1.z * u.y / d;
+          rotation2.z = rotation1.y * u.y / d + rotation1.z * u.z / d;
+        } else {
+          rotation2 = rotation1;
+        } // Rotation rotation onto second plane
+
+
+        rotation1.x = rotation2.x * d - rotation2.z * u.x;
+        rotation1.y = rotation2.y;
+        rotation1.z = rotation2.x * u.x + rotation2.z * d; // Oriented to axis, now perform original rotation
+
+        rotation2.x = rotation1.x * Math.cos(angle) - rotation1.y * Math.sin(angle);
+        rotation2.y = rotation1.x * Math.sin(angle) + rotation1.y * Math.cos(angle);
+        rotation2.z = rotation1.z; // Undo rotation 1
+
+        rotation1.x = rotation2.x * d + rotation2.z * u.x;
+        rotation1.y = rotation2.y;
+        rotation1.z = -rotation2.x * u.x + rotation2.z * d; // Undo rotation 2
+
+        if (d != 0) {
+          rotation2.x = rotation1.x;
+          rotation2.y = rotation1.y * u.z / d + rotation1.z * u.y / d;
+          rotation2.z = -rotation1.y * u.y / d + rotation1.z * u.z / d;
+        } else {
+          rotation2 = rotation1;
+        } // Move back into place
+
+
+        rotation1.x = rotation2.x + axisPt1.x;
+        rotation1.y = rotation2.y + axisPt1.y;
+        rotation1.z = rotation2.z + axisPt1.z;
+        return rotation1;
+      },
+      rotateGeometryAboutLine: function rotateGeometryAboutLine(geometry, axisPt1, axisPt2, angle) {
         var self = this;
 
-        if (graphics.appSettings.font.enable) {
-          var textGeometry = new THREE.TextGeometry('Y', graphics.appSettings.font.fontStyle);
+        for (var i = 0; i < geometry.vertices.length; i++) {
+          geometry.vertices[i] = graphics.rotatePointAboutLine(geometry.vertices[i], axisPt1, axisPt2, angle);
+        }
+
+        return geometry;
+      },
+      showPoints: function showPoints(geometry, color, opacity) {
+        var self = this;
+
+        for (var i = 0; i < geometry.vertices.length; i++) {
+          graphics.showPoint(geometry.vertices[i], color, opacity);
+        }
+      },
+      showPoint: function showPoint(pt, scene, color, opacity) {
+        color = color || 0xff0000;
+        opacity = opacity || 1;
+        var dotGeometry = new THREE.Geometry();
+        dotGeometry.vertices.push(new THREE.Vector3(pt.x, pt.y, pt.z));
+        var dotMaterial = new THREE.PointsMaterial({
+          size: 10,
+          sizeAttenuation: false,
+          color: color,
+          opacity: opacity,
+          transparent: true
+        });
+        var dot = new THREE.Points(dotGeometry, dotMaterial);
+        scene.add(dot);
+      },
+      showVector: function showVector(vector, origin, scene, color) {
+        color = color || 0xff0000;
+        var arrowHelper = new THREE.ArrowHelper(vector, origin, vector.length(), color);
+        scene.add(arrowHelper);
+      },
+
+      /* 	Inputs: pt - point in space to label, in the form of object with x, y, and z properties; label - text content for label; color - optional */
+      labelPoint: function labelPoint(pt, label, scene, color) {
+        var self = this;
+
+        if (self.settings.font.enable) {
+          color = color || 0xff0000;
+          var textGeometry = new THREE.TextGeometry(label, self.settings.font.fontStyle);
           var textMaterial = new THREE.MeshBasicMaterial({
-            color: 0x00ff00
+            color: color
           });
           var mesh = new THREE.Mesh(textGeometry, textMaterial);
-          textGeometry.translate(0, self.appSettings.axesHelper.axisLength, 0);
-          scene.add(mesh);
-          textGeometry = new THREE.TextGeometry('X', graphics.appSettings.font.fontStyle);
-          textMaterial = new THREE.MeshBasicMaterial({
-            color: 0xff0000
-          });
-          mesh = new THREE.Mesh(textGeometry, textMaterial);
-          textGeometry.translate(self.appSettings.axesHelper.axisLength, 0, 0);
-          scene.add(mesh);
-          textGeometry = new THREE.TextGeometry('Z', graphics.appSettings.font.fontStyle);
-          textMaterial = new THREE.MeshBasicMaterial({
-            color: 0x0000ff
-          });
-          mesh = new THREE.Mesh(textGeometry, textMaterial);
-          textGeometry.translate(0, 0, self.appSettings.axesHelper.axisLength);
+          textGeometry.translate(pt.x, pt.y, pt.z);
           scene.add(mesh);
         }
+      },
+      drawLine: function drawLine(pt1, pt2, scene) {
+        var material = new THREE.LineBasicMaterial({
+          color: 0x0000ff
+        });
+        var geometry = new THREE.Geometry();
+        geometry.vertices.push(new THREE.Vector3(pt1.x, pt1.y, pt1.z));
+        geometry.vertices.push(new THREE.Vector3(pt2.x, pt2.y, pt2.z));
+        var line = new THREE.Line(geometry, material);
+        scene.add(line);
+      },
+      getDistance: function getDistance(pt1, pt2) {
+        // create point class?
+        var squirt = Math.pow(pt2.x - pt1.x, 2) + Math.pow(pt2.y - pt1.y, 2) + Math.pow(pt2.z - pt1.z, 2);
+        return Math.sqrt(squirt);
       }
     };
   }();
