@@ -50,12 +50,14 @@ module.exports = function() {
 			
 			let self = this;
 			
-			self.setUpScene();
+			scene = graphics.setUpScene(scene);
+			renderer = graphics.setUpRenderer(renderer);
+			camera = graphics.setUpCamera(camera);
 			graphics.addFloor(scene);
-			self.enableStats();
+			graphics.enableStats(stats);
 			controls = graphics.enableControls(controls, renderer, camera);
 			graphics.resizeRendererOnWindowResize(renderer, camera);
-			self.setUpLights();
+			graphics.setUpLights(scene);
 			self.addTetrahedron();
 			graphics.setCameraLocation(camera, self.settings.defaultCameraLocation);
 			
@@ -68,55 +70,6 @@ module.exports = function() {
 			};
 			
 			animate(); 
-		},
-
-		enableStats: function() {
-			document.body.appendChild(stats.dom);
-		},
-
-		setUpLights: function() {
-
-			let self = this;
-			let lights = [];
-			const color = 0xFFFFFF;
-			const intensity = 1;
-			const light = new THREE.DirectionalLight(color, intensity);
-			light.position.set(-1, 2, 4);
-			scene.add(light);
-			lights.push(light);
-
-			const light2 = new THREE.DirectionalLight(color, intensity);
-			light2.position.set(0, 2, -8);
-			scene.add(light2);
-			lights.push(light2)
-			
-			if (graphics.appSettings.activateLightHelpers) {
-				graphics.activateLightHelpers(lights);
-			}
-		},
-
-		activateLightHelpers: function(lights) {
-
-			for (let i = 0; i < lights.length; i++) {
-				let helper = new THREE.DirectionalLightHelper(lights[i], 5, 0x00000);
-				scene.add(helper);
-			}
-		},
-
-		setUpScene: function() {
-
-			let self = this;
-			scene = new THREE.Scene();
-			scene.background = new THREE.Color(0xf0f0f0);
-			camera = new THREE.PerspectiveCamera(70, window.innerWidth / window.innerHeight, 1, 1000);
-			renderer = new THREE.WebGLRenderer();
-			renderer.setSize(window.innerWidth, window.innerHeight);
-			document.body.appendChild(renderer.domElement);
-
-			if (graphics.appSettings.axesHelper.activateAxesHelper) {
-
-				graphics.activateAxesHelper(scene);
-			}
 		},
 		
 		resetScene: function() {
@@ -132,7 +85,7 @@ module.exports = function() {
 			
 			graphics.addFloor(scene);
 			self.addTetrahedron();
-			self.setUpLights();
+			graphics.setUpLights(scene);
 			graphics.setCameraLocation(camera, self.settings.defaultCameraLocation);
 		},
 		
@@ -167,12 +120,25 @@ module.exports = function() {
 			scene.add(mesh);
 			
 			// rotate so next move is correct
-			let centroid = self.getCentroid(geometry);
+			let centroid = graphics.getCentroid(geometry);
 			let top = graphics.getHighestVertex(geometry);
 			graphics.drawLine(centroid, top, scene);
 			geometry = graphics.rotateGeometryAboutLine(geometry, centroid, top, 2 * Math.PI / 3);
 			bottomFace = graphics.rotateGeometryAboutLine(bottomFace, centroid, top, 4 * Math.PI / 3);
 
+			return geometry;
+		},
+
+		goBack: function(tetrahedronGeometry, bottomFace) {
+			
+			let self = this;
+			let geometry = tetrahedronGeometry.clone();
+			geometry = graphics.rotateGeometryAboutLine(geometry, bottomFace.vertices[2], bottomFace.vertices[0], 1.910633236249);
+			
+			let material = new THREE.MeshBasicMaterial({ wireframe: true, color: distinctColors[self.settings.stepCount] });
+			let mesh = new THREE.Mesh(geometry, wireframeMaterial);
+			scene.add(mesh);
+			
 			return geometry;
 		},
 
@@ -187,19 +153,6 @@ module.exports = function() {
 			graphics.drawLine(oppositeMidpoint, top, scene);
 
 			
-		},
-		
-		goBack: function(tetrahedronGeometry, bottomFace) {
-			
-			let self = this;
-			let geometry = tetrahedronGeometry.clone();
-			geometry = graphics.rotateGeometryAboutLine(geometry, bottomFace.vertices[2], bottomFace.vertices[0], 1.910633236249);
-			
-			let material = new THREE.MeshBasicMaterial({ wireframe: true, color: distinctColors[self.settings.stepCount] });
-			let mesh = new THREE.Mesh(geometry, wireframeMaterial);
-			scene.add(mesh);
-			
-			return geometry;
 		},
 		
 		step: function(tetrahedronGeometry, direction) {
@@ -262,44 +215,6 @@ module.exports = function() {
 			currentStep = startingGeometry;
 			
 			//self.labelDirections(triangleGeometry);
-		},
-		
-		createTriangle: function(pt1, pt2, pt3) { // return geometry
-			let triangleGeometry = new THREE.Geometry();
-			triangleGeometry.vertices.push(new THREE.Vector3(pt1.x, pt1.y, pt1.z));
-			triangleGeometry.vertices.push(new THREE.Vector3(pt2.x, pt2.y, pt2.z));
-			triangleGeometry.vertices.push(new THREE.Vector3(pt3.x, pt3.y, pt3.z));
-			triangleGeometry.faces.push(new THREE.Face3(0, 1, 2));
-			triangleGeometry.computeFaceNormals();
-			return triangleGeometry;
-		},
-		
-		getCentroid: function(geometry) { // Calculating centroid of a tetrahedron: https://www.youtube.com/watch?v=Infxzuqd_F4
-			
-			let result = {};
-			let x = 0, y = 0, z = 0;
-			
-			for (let i = 0; i < geometry.vertices.length; i++) {
-				
-				x += geometry.vertices[i].x;
-				y += geometry.vertices[i].y;
-				z += geometry.vertices[i].z;
-			}
-			
-			x = x / 4;
-			y = y / 4;
-			z = z / 4;
-			result = { x: x, y: y, z: z};
-			return result;
-		},
-		
-		getAngleBetweenVectors: function(vector1, vector2) {
-
-			let dot = vector1.dot(vector2);
-			let length1 = vector1.length();
-			let length2 = vector2.length();			
-			let angle = Math.acos(dot / (length1 * length2));
-			return angle;
 		},
 		
 		labelDirections: function(triangleGeometry, bottomFace) {

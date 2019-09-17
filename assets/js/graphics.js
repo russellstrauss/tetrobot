@@ -31,9 +31,15 @@
 				scene.add(axesHelper);
 			},
 
+			activateLightHelpers: function(scene, lights) {
+
+				for (let i = 0; i < lights.length; i++) {
+					let helper = new THREE.DirectionalLightHelper(lights[i], 5, 0x00000);
+					scene.add(helper);
+				}
+			},
+
 			addFloor: function(scene) {
-				
-				console.log(scene);
 
 				var planeGeometry = new THREE.PlaneBufferGeometry(100, 100);
 				planeGeometry.rotateX(-Math.PI / 2);
@@ -200,19 +206,28 @@
 				return geometry;
 			},
 
-			setUpScene: function(scene, camera, renderer) {
+			setUpScene: function(scene, renderer) {
 
 				scene = new THREE.Scene();
 				scene.background = new THREE.Color(0xf0f0f0);
-				camera = new THREE.PerspectiveCamera(70, window.innerWidth / window.innerHeight, 1, 1000);
-				renderer = new THREE.WebGLRenderer();
-				renderer.setSize(window.innerWidth, window.innerHeight);
-				document.body.appendChild(renderer.domElement);
 	
 				if (graphics.appSettings.axesHelper.activateAxesHelper) {
 	
 					graphics.activateAxesHelper(scene);
 				}
+				return scene;
+			},
+
+			setUpRenderer: function(renderer) {
+				renderer = new THREE.WebGLRenderer();
+				renderer.setSize(window.innerWidth, window.innerHeight);
+				document.body.appendChild(renderer.domElement);
+				return renderer;
+			},
+
+			setUpCamera: function(camera) {
+				camera = new THREE.PerspectiveCamera(70, window.innerWidth / window.innerHeight, 1, 1000);
+				return camera;
 			},
 
 			showPoints: function(geometry, color, opacity) {
@@ -333,6 +348,70 @@
 				controls.maxPolarAngle = Math.PI / 2;
 				return controls;
 			},
+
+			enableStats: function(stats) {
+				document.body.appendChild(stats.dom);
+			},
+
+			setUpLights: function(scene) {
+
+				let self = this;
+				let lights = [];
+				const color = 0xFFFFFF;
+				const intensity = 1;
+				const light = new THREE.DirectionalLight(color, intensity);
+				light.position.set(-1, 2, 4);
+				scene.add(light);
+				lights.push(light);
+	
+				const light2 = new THREE.DirectionalLight(color, intensity);
+				light2.position.set(0, 2, -8);
+				scene.add(light2);
+				lights.push(light2)
+				
+				if (graphics.appSettings.activateLightHelpers) {
+					graphics.activateLightHelpers(lights);
+				}
+			},
+
+			createTriangle: function(pt1, pt2, pt3) { // return geometry
+				let triangleGeometry = new THREE.Geometry();
+				triangleGeometry.vertices.push(new THREE.Vector3(pt1.x, pt1.y, pt1.z));
+				triangleGeometry.vertices.push(new THREE.Vector3(pt2.x, pt2.y, pt2.z));
+				triangleGeometry.vertices.push(new THREE.Vector3(pt3.x, pt3.y, pt3.z));
+				triangleGeometry.faces.push(new THREE.Face3(0, 1, 2));
+				triangleGeometry.computeFaceNormals();
+				return triangleGeometry;
+			},
+
+			getCentroid: function(geometry) { // Calculating centroid of a tetrahedron: https://www.youtube.com/watch?v=Infxzuqd_F4
+			
+				let result = {};
+				let x = 0, y = 0, z = 0;
+				
+				for (let i = 0; i < geometry.vertices.length; i++) {
+					
+					x += geometry.vertices[i].x;
+					y += geometry.vertices[i].y;
+					z += geometry.vertices[i].z;
+				}
+				
+				x = x / 4;
+				y = y / 4;
+				z = z / 4;
+				result = { x: x, y: y, z: z};
+				return result;
+			},
+
+			getAngleBetweenVectors: function(vector1, vector2) {
+
+				let dot = vector1.dot(vector2);
+				let length1 = vector1.length();
+				let length2 = vector2.length();			
+				let angle = Math.acos(dot / (length1 * length2));
+				return angle;
+			},
+			
 		}
 	})();
 	
