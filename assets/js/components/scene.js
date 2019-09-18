@@ -187,7 +187,17 @@ module.exports = function() {
 			
 			tetrahedron = new THREE.Mesh(startingGeometry, wireframeMaterial);
 			scene.add(tetrahedron);
+
+			let startingOppositeEnpoint = graphics.getMidpoint(tetrahedronGeometry.vertices[0], tetrahedronGeometry.vertices[3]);
+			graphics.showPoint(startingOppositeEnpoint, scene, new THREE.Color('purple'));
 			
+			this.addNextStep(tetrahedronGeometry);
+			
+			currentStep = startingGeometry;
+		},
+
+		addNextStep: function(tetrahedronGeometry, oppositeMidpoint, direction) {
+
 			let A = graphics.getHighestVertex(tetrahedronGeometry);
 			let B = graphics.getMidpoint(tetrahedronGeometry.vertices[0], tetrahedronGeometry.vertices[1]);
 			graphics.showPoint(A, scene, new THREE.Color('orange'));
@@ -197,22 +207,25 @@ module.exports = function() {
 			normal.y = 0;
 			let axis = new THREE.Vector3(0, 1, 0); // rotate a vector
 			let C = normal.applyAxisAngle(axis, -Math.PI / 2);
-			// //graphics.drawLine(A, B, scene);
-			// graphics.drawLine(B, C, scene);
 			
 			
 			let AB = graphics.createVector(B, A);
 			let BC = graphics.createVector(B, C);
+			BC.setLength(graphics.getMagnitude(AB));
 			
-			let showAB = new THREE.ArrowHelper(AB.normalize(), B, graphics.getDistance(A, B), 0xff0000);
+			let showAB = new THREE.ArrowHelper(AB.clone().normalize(), B, graphics.getMagnitude(AB), 0xff0000);
 			scene.add(showAB);
 
-			let showBC = new THREE.ArrowHelper(BC.normalize(), B, graphics.getDistance(B, C), 0xff0000);
+			let showBC = new THREE.ArrowHelper(BC.clone().normalize(), B, graphics.getMagnitude(BC), 0xff0000);
 			scene.add(showBC);
 
-			console.log(graphics.getAngleBetweenVectors(AB, BC));
-			
-			currentStep = startingGeometry;
+			let rotationAngle = graphics.getAngleBetweenVectors(AB, BC);
+
+			let newLocationGeometry = graphics.rotateGeometryAboutLine(tetrahedronGeometry, tetrahedronGeometry.vertices[0], tetrahedronGeometry.vertices[1], rotationAngle);
+			let newTetrahedron = new THREE.Mesh(newLocationGeometry, wireframeMaterial);
+			scene.add(newTetrahedron);
+
+			return newLocationGeometry;
 		},
 		
 		labelDirections: function(triangleGeometry, bottomFace) {

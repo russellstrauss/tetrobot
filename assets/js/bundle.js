@@ -162,6 +162,12 @@ module.exports = function () {
 
       tetrahedron = new THREE.Mesh(startingGeometry, wireframeMaterial);
       scene.add(tetrahedron);
+      var startingOppositeEnpoint = graphics.getMidpoint(tetrahedronGeometry.vertices[0], tetrahedronGeometry.vertices[3]);
+      graphics.showPoint(startingOppositeEnpoint, scene, new THREE.Color('purple'));
+      this.addNextStep(tetrahedronGeometry);
+      currentStep = startingGeometry;
+    },
+    addNextStep: function addNextStep(tetrahedronGeometry, oppositeMidpoint, direction) {
       var A = graphics.getHighestVertex(tetrahedronGeometry);
       var B = graphics.getMidpoint(tetrahedronGeometry.vertices[0], tetrahedronGeometry.vertices[1]);
       graphics.showPoint(A, scene, new THREE.Color('orange'));
@@ -170,17 +176,19 @@ module.exports = function () {
       normal.y = 0;
       var axis = new THREE.Vector3(0, 1, 0); // rotate a vector
 
-      var C = normal.applyAxisAngle(axis, -Math.PI / 2); // //graphics.drawLine(A, B, scene);
-      // graphics.drawLine(B, C, scene);
-
+      var C = normal.applyAxisAngle(axis, -Math.PI / 2);
       var AB = graphics.createVector(B, A);
       var BC = graphics.createVector(B, C);
-      var showAB = new THREE.ArrowHelper(AB.normalize(), B, graphics.getDistance(A, B), 0xff0000);
+      BC.setLength(graphics.getMagnitude(AB));
+      var showAB = new THREE.ArrowHelper(AB.clone().normalize(), B, graphics.getMagnitude(AB), 0xff0000);
       scene.add(showAB);
-      var showBC = new THREE.ArrowHelper(BC.normalize(), B, graphics.getDistance(B, C), 0xff0000);
+      var showBC = new THREE.ArrowHelper(BC.clone().normalize(), B, graphics.getMagnitude(BC), 0xff0000);
       scene.add(showBC);
-      console.log(graphics.getAngleBetweenVectors(AB, BC));
-      currentStep = startingGeometry;
+      var rotationAngle = graphics.getAngleBetweenVectors(AB, BC);
+      var newLocationGeometry = graphics.rotateGeometryAboutLine(tetrahedronGeometry, tetrahedronGeometry.vertices[0], tetrahedronGeometry.vertices[1], rotationAngle);
+      var newTetrahedron = new THREE.Mesh(newLocationGeometry, wireframeMaterial);
+      scene.add(newTetrahedron);
+      return newLocationGeometry;
     },
     labelDirections: function labelDirections(triangleGeometry, bottomFace) {
       var self = this;
