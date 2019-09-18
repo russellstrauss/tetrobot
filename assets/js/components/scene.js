@@ -67,6 +67,9 @@ module.exports = function() {
 				renderer.render(scene, camera);
 				controls.update();
 				stats.update();
+				
+				tetrahedron.geometry = graphics.rotateGeometryAboutLine(tetrahedron.geometry, tetrahedron.geometry.vertices[0], tetrahedron.geometry.vertices[1],  .00000001);
+				tetrahedron.verticesNeedUpdate = true;
 			};
 			
 			animate(); 
@@ -76,12 +79,8 @@ module.exports = function() {
 			
 			let self = this;
 			let geometry = tetrahedronGeometry.clone();
-			
 			geometry = graphics.rotateGeometryAboutLine(geometry, bottomFace.vertices[2], bottomFace.vertices[1],  -1.910633236249);
-			
-			// graphics.showPoint(bottomFace.vertices[2], distinctColors[self.settings.stepCount]);
-			// graphics.showPoint(bottomFace.vertices[1], distinctColors[self.settings.stepCount]);
-			
+
 			let material = new THREE.MeshBasicMaterial({ wireframe: true, color: distinctColors[self.settings.stepCount] });
 			let mesh = new THREE.Mesh(geometry, wireframeMaterial);
 			scene.add(mesh);
@@ -94,9 +93,6 @@ module.exports = function() {
 			let self = this;
 			let geometry = tetrahedronGeometry.clone();
 			geometry = graphics.rotateGeometryAboutLine(geometry, bottomFace.vertices[0], bottomFace.vertices[1], 1.910633236249);
-			
-			// graphics.showPoint(bottomFace.vertices[0], distinctColors[self.settings.stepCount]);
-			// graphics.showPoint(bottomFace.vertices[1], distinctColors[self.settings.stepCount]);
 			
 			let material = new THREE.MeshBasicMaterial({ wireframe: true, color: distinctColors[self.settings.stepCount] });
 			let mesh = new THREE.Mesh(geometry, material);
@@ -186,27 +182,52 @@ module.exports = function() {
 				// 				[red, 		green, 		blue, 		purple]
 				
 				tetrahedronGeometry.verticesNeedUpdate = true;
-				//graphics.showPoint(tetrahedronGeometry.vertices[i], colors[i]);
+				graphics.labelPoint(tetrahedronGeometry.vertices[i], i.toString(), scene, colors[i]);
 			}
 			
-			tetrahedron = new THREE.Mesh(tetrahedronGeometry, shadeMaterial);
+			tetrahedron = new THREE.Mesh(startingGeometry, wireframeMaterial);
 			scene.add(tetrahedron);
 			
-			let ogTetrahedron = new THREE.Mesh(startingGeometry, wireframeMaterial);
-			scene.add(ogTetrahedron);
+			let A = graphics.getHighestVertex(tetrahedronGeometry);
+			let B = graphics.getMidpoint(tetrahedronGeometry.vertices[0], tetrahedronGeometry.vertices[1]);
+			graphics.showPoint(A, scene, new THREE.Color('orange'));
+			graphics.showPoint(B, scene, new THREE.Color('black'));
+			graphics.drawLine(A, B, scene);
+			
+			let normal = graphics.createVector(tetrahedronGeometry.vertices[0], tetrahedronGeometry.vertices[1]);
+			normal.y = 0;
+			let axis = new THREE.Vector3(0, 1, 0); // rotate a vector
+			let C = normal.applyAxisAngle(axis, -Math.PI / 2);
+			graphics.drawLine(B, C, scene);
+			let central = graphics.createVector(centroidOfBottomFace, A);
+			
+			
+			let AB = graphics.createVector(B, A);
+			let BC = graphics.createVector(B, C);
+			//console.log(graphics.getAngleBetweenVectors(AB, BC));
+			AB = graphics.addVectors(AB, central);
+			
+			let newA = new THREE.Vector3(A.x + AB.x, A.y + AB.y, A.z + AB.z);
+			var showNewA = new THREE.ArrowHelper(newA, B, graphics.getMagnitude(newA), 0xff0000);
+			scene.add(showNewA);
+			
+			
+			
+			
+			
+			var showNormal = new THREE.ArrowHelper(normal, B, graphics.getMagnitude(normal), 0xff0000);
+			//scene.add(showNormal);
+			var showAB = new THREE.ArrowHelper(AB, B, graphics.getMagnitude(AB), 0xff0000);
+			scene.add(showAB);
+			var showBC = new THREE.ArrowHelper(BC, B, graphics.getMagnitude(BC), 0xff0000);
+			//scene.add(showBC);
+			
+			
+			
+			
+			
 			
 			currentStep = startingGeometry;
-
-			// let pt1 = new THREE.Vector3(0, 2, 0);
-			// let pt2 = new THREE.Vector3(2, 0, 0);
-			// let vertex = new THREE.Vector3(0, 0, 0);
-			// graphics.showPoint(pt1, scene, new THREE.Color('purple'));
-			// graphics.showPoint(pt2, scene, new THREE.Color('purple'));
-			// graphics.showPoint(vertex, scene, new THREE.Color('red'));
-			// graphics.drawLine(pt1, vertex, scene);
-			// graphics.drawLine(pt2, vertex, scene);
-
-			//console.log(graphics.calculateAngle(pt1, pt2, vertex));
 		},
 		
 		labelDirections: function(triangleGeometry, bottomFace) {
