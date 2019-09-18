@@ -162,25 +162,53 @@ module.exports = function () {
 
       tetrahedron = new THREE.Mesh(startingGeometry, wireframeMaterial);
       scene.add(tetrahedron);
-      var startingOppositeEnpoint = graphics.getMidpoint(tetrahedronGeometry.vertices[0], tetrahedronGeometry.vertices[3]);
-      graphics.showPoint(startingOppositeEnpoint, scene, new THREE.Color('purple'));
-      console.log(this.isRightTurn(tetrahedronGeometry.vertices[3], tetrahedronGeometry.vertices[1], tetrahedronGeometry.vertices[0]));
-      this.addNextStep(tetrahedronGeometry);
+      var startingOppositeMidpoint = graphics.getMidpoint(tetrahedronGeometry.vertices[0], tetrahedronGeometry.vertices[3]);
+      tetrahedronGeometry.opposite = [tetrahedronGeometry.vertices[0], tetrahedronGeometry.vertices[3]];
+      this.setDirections(tetrahedronGeometry, startingOppositeMidpoint);
+      graphics.showPoint(startingOppositeMidpoint, scene, new THREE.Color('purple'));
+      this.addNextStep(tetrahedronGeometry, startingOppositeMidpoint, 'R');
       currentStep = startingGeometry;
+    },
+    setDirections: function setDirections(tetrahedronGeometry, oppositeMidpoint) {
+      if (this.isRightTurn(oppositeMidpoint, tetrahedronGeometry.vertices[3], tetrahedronGeometry.vertices[1])) {
+        tetrahedronGeometry.right = [tetrahedronGeometry.vertices[3], tetrahedronGeometry.vertices[1]];
+      } else {
+        tetrahedronGeometry.left = [tetrahedronGeometry.vertices[3], tetrahedronGeometry.vertices[1]];
+      }
+
+      if (this.isRightTurn(oppositeMidpoint, tetrahedronGeometry.vertices[0], tetrahedronGeometry.vertices[1])) {
+        tetrahedronGeometry.right = [tetrahedronGeometry.vertices[0], tetrahedronGeometry.vertices[1]];
+      } else {
+        tetrahedronGeometry.left = [tetrahedronGeometry.vertices[0], tetrahedronGeometry.vertices[1]];
+      }
+
+      tetrahedronGeometry.right.forEach(function (vertex) {
+        graphics.showPoint(vertex, scene, new THREE.Color('purple'));
+      });
+      graphics.labelPoint(graphics.getMidpoint(tetrahedronGeometry.left[0], tetrahedronGeometry.left[1]), 'L', scene);
+      graphics.labelPoint(graphics.getMidpoint(tetrahedronGeometry.right[0], tetrahedronGeometry.right[1]), 'R', scene);
+      graphics.labelPoint(oppositeMidpoint, 'O', scene);
     },
     isRightTurn: function isRightTurn(startingPoint, turningPoint, endingPoint) {
       // This might only work if vectors are flat on the ground since I am using y-component to determine sign
       var segment1 = graphics.createVector(startingPoint, turningPoint);
       var segment2 = graphics.createVector(turningPoint, endingPoint);
       var result = new THREE.Vector3();
-      result.crossVectors(segment1, segment2); // let showResult = new THREE.ArrowHelper(result.clone().normalize(), startingPoint, graphics.getMagnitude(result), 0x00ff00);
-      // scene.add(showResult);
-
+      result.crossVectors(segment1, segment2);
       return result.y > 0;
     },
     addNextStep: function addNextStep(tetrahedronGeometry, oppositeMidpoint, direction) {
       var A = graphics.getHighestVertex(tetrahedronGeometry);
-      var B = graphics.getMidpoint(tetrahedronGeometry.vertices[0], tetrahedronGeometry.vertices[1]);
+      var B;
+
+      if (direction === 'L') {
+        B = graphics.getMidpoint(tetrahedronGeometry.left[0], tetrahedronGeometry.left[1]);
+      }
+
+      if (direction === 'R') {
+        B = graphics.getMidpoint(tetrahedronGeometry.right[0], tetrahedronGeometry.right[1]);
+      }
+
       graphics.showPoint(A, scene, new THREE.Color('orange'));
       graphics.showPoint(B, scene, new THREE.Color('black'));
       var normal = graphics.createVector(tetrahedronGeometry.vertices[0], tetrahedronGeometry.vertices[1]);
