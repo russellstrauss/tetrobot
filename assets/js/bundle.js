@@ -164,8 +164,19 @@ module.exports = function () {
       scene.add(tetrahedron);
       var startingOppositeEnpoint = graphics.getMidpoint(tetrahedronGeometry.vertices[0], tetrahedronGeometry.vertices[3]);
       graphics.showPoint(startingOppositeEnpoint, scene, new THREE.Color('purple'));
+      console.log(this.isRightTurn(tetrahedronGeometry.vertices[3], tetrahedronGeometry.vertices[1], tetrahedronGeometry.vertices[0]));
       this.addNextStep(tetrahedronGeometry);
       currentStep = startingGeometry;
+    },
+    isRightTurn: function isRightTurn(startingPoint, turningPoint, endingPoint) {
+      // This might only work if vectors are flat on the ground since I am using y-component to determine sign
+      var segment1 = graphics.createVector(startingPoint, turningPoint);
+      var segment2 = graphics.createVector(turningPoint, endingPoint);
+      var result = new THREE.Vector3();
+      result.crossVectors(segment1, segment2); // let showResult = new THREE.ArrowHelper(result.clone().normalize(), startingPoint, graphics.getMagnitude(result), 0x00ff00);
+      // scene.add(showResult);
+
+      return result.y > 0;
     },
     addNextStep: function addNextStep(tetrahedronGeometry, oppositeMidpoint, direction) {
       var A = graphics.getHighestVertex(tetrahedronGeometry);
