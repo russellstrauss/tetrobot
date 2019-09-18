@@ -65,6 +65,8 @@ module.exports = function () {
         renderer.render(scene, camera);
         controls.update();
         stats.update();
+        tetrahedron.geometry = graphics.rotateGeometryAboutLine(tetrahedron.geometry, tetrahedron.geometry.vertices[0], tetrahedron.geometry.vertices[1], .00000001);
+        tetrahedron.verticesNeedUpdate = true;
       };
 
       animate();
@@ -72,9 +74,7 @@ module.exports = function () {
     goLeft: function goLeft(tetrahedronGeometry, bottomFace) {
       var self = this;
       var geometry = tetrahedronGeometry.clone();
-      geometry = graphics.rotateGeometryAboutLine(geometry, bottomFace.vertices[2], bottomFace.vertices[1], -1.910633236249); // graphics.showPoint(bottomFace.vertices[2], distinctColors[self.settings.stepCount]);
-      // graphics.showPoint(bottomFace.vertices[1], distinctColors[self.settings.stepCount]);
-
+      geometry = graphics.rotateGeometryAboutLine(geometry, bottomFace.vertices[2], bottomFace.vertices[1], -1.910633236249);
       var material = new THREE.MeshBasicMaterial({
         wireframe: true,
         color: distinctColors[self.settings.stepCount]
@@ -86,9 +86,7 @@ module.exports = function () {
     goRight: function goRight(tetrahedronGeometry, bottomFace) {
       var self = this;
       var geometry = tetrahedronGeometry.clone();
-      geometry = graphics.rotateGeometryAboutLine(geometry, bottomFace.vertices[0], bottomFace.vertices[1], 1.910633236249); // graphics.showPoint(bottomFace.vertices[0], distinctColors[self.settings.stepCount]);
-      // graphics.showPoint(bottomFace.vertices[1], distinctColors[self.settings.stepCount]);
-
+      geometry = graphics.rotateGeometryAboutLine(geometry, bottomFace.vertices[0], bottomFace.vertices[1], 1.910633236249);
       var material = new THREE.MeshBasicMaterial({
         wireframe: true,
         color: distinctColors[self.settings.stepCount]
@@ -158,22 +156,28 @@ module.exports = function () {
       for (var i = 0; i < tetrahedronGeometry.vertices.length; i++) {
         var colors = [0xCE3611, 0x00CE17, 0x03BAEE, 0x764E8C]; // 				[red, 		green, 		blue, 		purple]
 
-        tetrahedronGeometry.verticesNeedUpdate = true; //graphics.showPoint(tetrahedronGeometry.vertices[i], colors[i]);
+        tetrahedronGeometry.verticesNeedUpdate = true;
+        graphics.labelPoint(tetrahedronGeometry.vertices[i], i.toString(), scene, colors[i]);
       }
 
-      tetrahedron = new THREE.Mesh(tetrahedronGeometry, shadeMaterial);
+      tetrahedron = new THREE.Mesh(startingGeometry, wireframeMaterial);
       scene.add(tetrahedron);
-      var ogTetrahedron = new THREE.Mesh(startingGeometry, wireframeMaterial);
-      scene.add(ogTetrahedron);
-      currentStep = startingGeometry; // let pt1 = new THREE.Vector3(0, 2, 0);
-      // let pt2 = new THREE.Vector3(2, 0, 0);
-      // let vertex = new THREE.Vector3(0, 0, 0);
-      // graphics.showPoint(pt1, scene, new THREE.Color('purple'));
-      // graphics.showPoint(pt2, scene, new THREE.Color('purple'));
-      // graphics.showPoint(vertex, scene, new THREE.Color('red'));
-      // graphics.drawLine(pt1, vertex, scene);
-      // graphics.drawLine(pt2, vertex, scene);
-      //console.log(graphics.calculateAngle(pt1, pt2, vertex));
+      var A = graphics.getHighestVertex(tetrahedronGeometry);
+      var B = graphics.getMidpoint(tetrahedronGeometry.vertices[0], tetrahedronGeometry.vertices[1]);
+      graphics.showPoint(A, scene, new THREE.Color('orange'));
+      graphics.showPoint(B, scene, new THREE.Color('black'));
+      var normal = graphics.createVector(tetrahedronGeometry.vertices[0], tetrahedronGeometry.vertices[1]);
+      normal.y = 0;
+      var axis = new THREE.Vector3(0, 1, 0); // rotate a vector
+
+      var C = normal.applyAxisAngle(axis, -Math.PI / 2);
+      graphics.drawLine(A, B, scene);
+      graphics.drawLine(B, C, scene);
+      var AB = graphics.createVector(B, A);
+      var BC = graphics.createVector(B, C);
+      var showAB = new THREE.ArrowHelper(AB, B, 10, 0xff0000);
+      scene.add(showAB);
+      currentStep = startingGeometry;
     },
     labelDirections: function labelDirections(triangleGeometry, bottomFace) {
       var self = this;
@@ -312,7 +316,10 @@ module.exports = function () {
         scene.add(helper);
       },
       createVector: function createVector(pt1, pt2) {
-        return new THREE.Vector3(pt2.x - pt1.x, pt2.y - pt2.y, pt2.z - pt1.z);
+        return new THREE.Vector3(pt2.x - pt1.x, pt2.y - pt1.y, pt2.z - pt1.z);
+      },
+      addVectors: function addVectors(vector1, vector2) {
+        return new THREE.Vector3(vector1.x + vector2.x, vector1.y + vector2.y, vector1.z + vector2.z);
       },
       getSharedVertices: function getSharedVertices(geometry1, geometry2) {
         var result = new THREE.Geometry();
@@ -333,10 +340,14 @@ module.exports = function () {
             highest = vertex;
           }
         });
-        return highest;
+        return new THREE.Vector3(highest.x, highest.y, highest.z);
+      },
+      getMagnitude: function getMagnitude(vector) {
+        var magnitude = Math.sqrt(Math.pow(vector.x, 2) + Math.pow(vector.y, 2) + Math.pow(vector.z, 2));
+        return magnitude;
       },
       getMidpoint: function getMidpoint(pt1, pt2) {
-        var midpoint = {};
+        var midpoint = new THREE.Vector3();
         midpoint.x = (pt1.x + pt2.x) / 2;
         midpoint.y = (pt1.y + pt2.y) / 2;
         midpoint.z = (pt1.z + pt2.z) / 2;

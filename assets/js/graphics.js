@@ -57,7 +57,11 @@
 			},
 
 			createVector: function(pt1, pt2) {
-				return new THREE.Vector3(pt2.x - pt1.x, pt2.y - pt2.y, pt2.z - pt1.z);
+				return new THREE.Vector3(pt2.x - pt1.x, pt2.y - pt1.y, pt2.z - pt1.z);
+			},
+			
+			addVectors(vector1, vector2) {
+				return new THREE.Vector3(vector1.x + vector2.x, vector1.y + vector2.y, vector1.z + vector2.z);	
 			},
 			
 			getSharedVertices: function(geometry1, geometry2) {
@@ -89,13 +93,17 @@
 					}
 				});
 				
-				return highest;
+				return new THREE.Vector3(highest.x, highest.y, highest.z);
+			},
+			
+			getMagnitude: function(vector) {
+				let magnitude = Math.sqrt(Math.pow(vector.x, 2) + Math.pow(vector.y, 2) + Math.pow(vector.z, 2));
+				return magnitude;
 			},
 
 			getMidpoint: function(pt1, pt2) {
 			
-				let midpoint = {};
-				
+				let midpoint = new THREE.Vector3();
 				midpoint.x = (pt1.x + pt2.x) / 2;
 				midpoint.y = (pt1.y + pt2.y) / 2;
 				midpoint.z = (pt1.z + pt2.z) / 2;
