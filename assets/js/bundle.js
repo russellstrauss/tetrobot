@@ -166,27 +166,17 @@ module.exports = function () {
       var B = graphics.getMidpoint(tetrahedronGeometry.vertices[0], tetrahedronGeometry.vertices[1]);
       graphics.showPoint(A, scene, new THREE.Color('orange'));
       graphics.showPoint(B, scene, new THREE.Color('black'));
-      graphics.drawLine(A, B, scene);
       var normal = graphics.createVector(tetrahedronGeometry.vertices[0], tetrahedronGeometry.vertices[1]);
       normal.y = 0;
       var axis = new THREE.Vector3(0, 1, 0); // rotate a vector
 
       var C = normal.applyAxisAngle(axis, -Math.PI / 2);
+      graphics.drawLine(A, B, scene);
       graphics.drawLine(B, C, scene);
-      var central = graphics.createVector(centroidOfBottomFace, A);
       var AB = graphics.createVector(B, A);
-      var BC = graphics.createVector(B, C); //console.log(graphics.getAngleBetweenVectors(AB, BC));
-
-      AB = graphics.addVectors(AB, central);
-      var newA = new THREE.Vector3(A.x + AB.x, A.y + AB.y, A.z + AB.z);
-      var showNewA = new THREE.ArrowHelper(newA, B, graphics.getMagnitude(newA), 0xff0000);
-      scene.add(showNewA);
-      var showNormal = new THREE.ArrowHelper(normal, B, graphics.getMagnitude(normal), 0xff0000); //scene.add(showNormal);
-
-      var showAB = new THREE.ArrowHelper(AB, B, graphics.getMagnitude(AB), 0xff0000);
+      var BC = graphics.createVector(B, C);
+      var showAB = new THREE.ArrowHelper(AB, B, 10, 0xff0000);
       scene.add(showAB);
-      var showBC = new THREE.ArrowHelper(BC, B, graphics.getMagnitude(BC), 0xff0000); //scene.add(showBC);
-
       currentStep = startingGeometry;
     },
     labelDirections: function labelDirections(triangleGeometry, bottomFace) {
@@ -326,7 +316,7 @@ module.exports = function () {
         scene.add(helper);
       },
       createVector: function createVector(pt1, pt2) {
-        return new THREE.Vector3(pt2.x - pt1.x, pt2.y - pt2.y, pt2.z - pt1.z);
+        return new THREE.Vector3(pt2.x - pt1.x, pt2.y - pt1.y, pt2.z - pt1.z);
       },
       addVectors: function addVectors(vector1, vector2) {
         return new THREE.Vector3(vector1.x + vector2.x, vector1.y + vector2.y, vector1.z + vector2.z);

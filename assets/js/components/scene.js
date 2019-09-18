@@ -192,36 +192,20 @@ module.exports = function() {
 			let B = graphics.getMidpoint(tetrahedronGeometry.vertices[0], tetrahedronGeometry.vertices[1]);
 			graphics.showPoint(A, scene, new THREE.Color('orange'));
 			graphics.showPoint(B, scene, new THREE.Color('black'));
-			graphics.drawLine(A, B, scene);
 			
 			let normal = graphics.createVector(tetrahedronGeometry.vertices[0], tetrahedronGeometry.vertices[1]);
 			normal.y = 0;
 			let axis = new THREE.Vector3(0, 1, 0); // rotate a vector
 			let C = normal.applyAxisAngle(axis, -Math.PI / 2);
+			graphics.drawLine(A, B, scene);
 			graphics.drawLine(B, C, scene);
-			let central = graphics.createVector(centroidOfBottomFace, A);
 			
 			
 			let AB = graphics.createVector(B, A);
 			let BC = graphics.createVector(B, C);
-			//console.log(graphics.getAngleBetweenVectors(AB, BC));
-			AB = graphics.addVectors(AB, central);
 			
-			let newA = new THREE.Vector3(A.x + AB.x, A.y + AB.y, A.z + AB.z);
-			var showNewA = new THREE.ArrowHelper(newA, B, graphics.getMagnitude(newA), 0xff0000);
-			scene.add(showNewA);
-			
-			
-			
-			
-			
-			var showNormal = new THREE.ArrowHelper(normal, B, graphics.getMagnitude(normal), 0xff0000);
-			//scene.add(showNormal);
-			var showAB = new THREE.ArrowHelper(AB, B, graphics.getMagnitude(AB), 0xff0000);
+			var showAB = new THREE.ArrowHelper(AB, B, 10, 0xff0000);
 			scene.add(showAB);
-			var showBC = new THREE.ArrowHelper(BC, B, graphics.getMagnitude(BC), 0xff0000);
-			//scene.add(showBC);
-			
 			
 			
 			

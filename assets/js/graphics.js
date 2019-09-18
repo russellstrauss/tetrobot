@@ -57,7 +57,7 @@
 			},
 
 			createVector: function(pt1, pt2) {
-				return new THREE.Vector3(pt2.x - pt1.x, pt2.y - pt2.y, pt2.z - pt1.z);
+				return new THREE.Vector3(pt2.x - pt1.x, pt2.y - pt1.y, pt2.z - pt1.z);
 			},
 			
 			addVectors(vector1, vector2) {
