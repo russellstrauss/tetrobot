@@ -197,19 +197,20 @@ module.exports = function() {
 			normal.y = 0;
 			let axis = new THREE.Vector3(0, 1, 0); // rotate a vector
 			let C = normal.applyAxisAngle(axis, -Math.PI / 2);
-			graphics.drawLine(A, B, scene);
-			graphics.drawLine(B, C, scene);
+			// //graphics.drawLine(A, B, scene);
+			// graphics.drawLine(B, C, scene);
 			
 			
 			let AB = graphics.createVector(B, A);
 			let BC = graphics.createVector(B, C);
 			
-			var showAB = new THREE.ArrowHelper(AB, B, 10, 0xff0000);
+			let showAB = new THREE.ArrowHelper(AB.normalize(), B, graphics.getDistance(A, B), 0xff0000);
 			scene.add(showAB);
-			
-			
-			
-			
+
+			let showBC = new THREE.ArrowHelper(BC.normalize(), B, graphics.getDistance(B, C), 0xff0000);
+			scene.add(showBC);
+
+			console.log(graphics.getAngleBetweenVectors(AB, BC));
 			
 			currentStep = startingGeometry;
 		},
