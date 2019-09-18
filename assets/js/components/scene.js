@@ -196,8 +196,17 @@ module.exports = function() {
 			scene.add(ogTetrahedron);
 			
 			currentStep = startingGeometry;
-			
-			//self.labelDirections(triangleGeometry);
+
+			// let pt1 = new THREE.Vector3(0, 2, 0);
+			// let pt2 = new THREE.Vector3(2, 0, 0);
+			// let vertex = new THREE.Vector3(0, 0, 0);
+			// graphics.showPoint(pt1, scene, new THREE.Color('purple'));
+			// graphics.showPoint(pt2, scene, new THREE.Color('purple'));
+			// graphics.showPoint(vertex, scene, new THREE.Color('red'));
+			// graphics.drawLine(pt1, vertex, scene);
+			// graphics.drawLine(pt2, vertex, scene);
+
+			//console.log(graphics.calculateAngle(pt1, pt2, vertex));
 		},
 		
 		labelDirections: function(triangleGeometry, bottomFace) {
@@ -250,7 +259,7 @@ module.exports = function() {
 			function(event) { // error event
 				
 				if (graphics.appSettings.errorLogging) console.log('Error loading fonts. Webserver required due to CORS policy.');
-				self.settings.font.enable = false;
+				graphics.appSettings.font.enable = false;
 				self.begin();
 			});
 		},

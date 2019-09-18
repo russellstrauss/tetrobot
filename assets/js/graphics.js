@@ -9,7 +9,7 @@
 			appSettings: {
 				activateLightHelpers: false,
 				axesHelper: {
-					activateAxesHelper: true,
+					activateAxesHelper: false,
 					axisLength: 10
 				},
 				font: {
@@ -427,6 +427,13 @@
 				return angle;
 			},
 			
+			calculateAngle(endpoint1, endpoint2, vertex) {
+
+				let vector1 = new THREE.Vector3(endpoint1.x - vertex.x, endpoint1.y - vertex.y, endpoint1.z - vertex.z);
+				let vector2 = new THREE.Vector3(endpoint2.x - vertex.x, endpoint2.y - vertex.y, endpoint2.z - vertex.z);
+				let angle = vector1.angleTo(vector2);
+				return angle;
+			}
 		}
 	})();
 	

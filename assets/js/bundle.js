@@ -165,7 +165,15 @@ module.exports = function () {
       scene.add(tetrahedron);
       var ogTetrahedron = new THREE.Mesh(startingGeometry, wireframeMaterial);
       scene.add(ogTetrahedron);
-      currentStep = startingGeometry; //self.labelDirections(triangleGeometry);
+      currentStep = startingGeometry; // let pt1 = new THREE.Vector3(0, 2, 0);
+      // let pt2 = new THREE.Vector3(2, 0, 0);
+      // let vertex = new THREE.Vector3(0, 0, 0);
+      // graphics.showPoint(pt1, scene, new THREE.Color('purple'));
+      // graphics.showPoint(pt2, scene, new THREE.Color('purple'));
+      // graphics.showPoint(vertex, scene, new THREE.Color('red'));
+      // graphics.drawLine(pt1, vertex, scene);
+      // graphics.drawLine(pt2, vertex, scene);
+      //console.log(graphics.calculateAngle(pt1, pt2, vertex));
     },
     labelDirections: function labelDirections(triangleGeometry, bottomFace) {
       var self = this;
@@ -203,7 +211,7 @@ module.exports = function () {
       }, function (event) {
         // error event
         if (graphics.appSettings.errorLogging) console.log('Error loading fonts. Webserver required due to CORS policy.');
-        self.settings.font.enable = false;
+        graphics.appSettings.font.enable = false;
         self.begin();
       });
     },
@@ -263,7 +271,7 @@ module.exports = function () {
       appSettings: {
         activateLightHelpers: false,
         axesHelper: {
-          activateAxesHelper: true,
+          activateAxesHelper: false,
           axisLength: 10
         },
         font: {
@@ -620,6 +628,12 @@ module.exports = function () {
         var length1 = vector1.length();
         var length2 = vector2.length();
         var angle = Math.acos(dot / (length1 * length2));
+        return angle;
+      },
+      calculateAngle: function calculateAngle(endpoint1, endpoint2, vertex) {
+        var vector1 = new THREE.Vector3(endpoint1.x - vertex.x, endpoint1.y - vertex.y, endpoint1.z - vertex.z);
+        var vector2 = new THREE.Vector3(endpoint2.x - vertex.x, endpoint2.y - vertex.y, endpoint2.z - vertex.z);
+        var angle = vector1.angleTo(vector2);
         return angle;
       }
     };
