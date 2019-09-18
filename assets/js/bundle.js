@@ -562,7 +562,7 @@ module.exports = function () {
         controls.enableDamping = true; // an animation loop is required when either damping or auto-rotation are enabled
 
         controls.dampingFactor = 0.05;
-        controls.zoomSpeed = 6;
+        controls.zoomSpeed = 2;
         controls.enablePan = !utils.mobile();
         controls.minDistance = 10;
         controls.maxDistance = 100;
