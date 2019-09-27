@@ -22,6 +22,7 @@ module.exports = function() {
 	var nextStep, top, center; // testing
 	var black = new THREE.Color('black');
 	var green = new THREE.Color('green');
+	var blue = new THREE.Color('blue');
 	var orange = new THREE.Color('orange');
 	var previousRollEdge = {};
 	previousRollEdge.vertices = [];
@@ -188,9 +189,11 @@ module.exports = function() {
 			
 			if (tetrahedronGeometry.direction) {
 				
-				let showBC = new THREE.ArrowHelper(tetrahedronGeometry.direction.clone().normalize(), oppositeMidpoint, graphics.getMagnitude(tetrahedronGeometry.direction), 0xff0000);
+				let showBC = new THREE.ArrowHelper(tetrahedronGeometry.direction.clone().normalize(), oppositeMidpoint, graphics.getMagnitude(tetrahedronGeometry.direction), 0x0000ff);
 				scene.add(showBC);
+				this.getDirectionalEdges(tetrahedronGeometry, oppositeMidpoint);
 			}
+			
 			
 			graphics.labelPoint(graphics.getMidpoint(tetrahedronGeometry.left[0], tetrahedronGeometry.left[1]), 'L', scene);
 			graphics.labelPoint(graphics.getMidpoint(tetrahedronGeometry.right[0], tetrahedronGeometry.right[1]), 'R', scene);
@@ -243,8 +246,8 @@ module.exports = function() {
 			BC.setLength(graphics.getMagnitude(AB));
 			tetrahedronGeometry.direction = BC.clone();
 			
-			let showAB = new THREE.ArrowHelper(AB.clone().normalize(), B, graphics.getMagnitude(AB), 0xff0000);
-			scene.add(showAB);
+			// let showAB = new THREE.ArrowHelper(AB.clone().normalize(), B, graphics.getMagnitude(AB), 0xff0000);
+			// scene.add(showAB);
 
 			// let showBC = new THREE.ArrowHelper(BC.clone().normalize(), B, graphics.getMagnitude(BC), 0xff0000);
 			// scene.add(showBC);
@@ -269,6 +272,12 @@ module.exports = function() {
 		
 		getDirectionalEdges: function(tetrahedronGeometry, oppositeMidpoint) {
 			
+			let directionVector = tetrahedronGeometry.direction;
+			
+			let Oa = new THREE.Vector3(oppositeMidpoint.x + directionVector.x, oppositeMidpoint.y + directionVector.y, oppositeMidpoint.z + oppositeMidpoint.z);
+			console.log(Oa);
+			graphics.showPoint(Oa, scene, orange);
+			graphics.showPoint(oppositeMidpoint, scene, blue);
 		},
 		
 		labelDirections: function(triangleGeometry, bottomFace) {

@@ -28,6 +28,7 @@ module.exports = function () {
 
   var black = new THREE.Color('black');
   var green = new THREE.Color('green');
+  var blue = new THREE.Color('blue');
   var orange = new THREE.Color('orange');
   var previousRollEdge = {};
   previousRollEdge.vertices = [];
@@ -151,8 +152,9 @@ module.exports = function () {
       }
 
       if (tetrahedronGeometry.direction) {
-        var showBC = new THREE.ArrowHelper(tetrahedronGeometry.direction.clone().normalize(), oppositeMidpoint, graphics.getMagnitude(tetrahedronGeometry.direction), 0xff0000);
+        var showBC = new THREE.ArrowHelper(tetrahedronGeometry.direction.clone().normalize(), oppositeMidpoint, graphics.getMagnitude(tetrahedronGeometry.direction), 0x0000ff);
         scene.add(showBC);
+        this.getDirectionalEdges(tetrahedronGeometry, oppositeMidpoint);
       }
 
       graphics.labelPoint(graphics.getMidpoint(tetrahedronGeometry.left[0], tetrahedronGeometry.left[1]), 'L', scene);
@@ -200,9 +202,9 @@ module.exports = function () {
       var AB = graphics.createVector(B, A);
       var BC = graphics.createVector(B, C);
       BC.setLength(graphics.getMagnitude(AB));
-      tetrahedronGeometry.direction = BC.clone();
-      var showAB = new THREE.ArrowHelper(AB.clone().normalize(), B, graphics.getMagnitude(AB), 0xff0000);
-      scene.add(showAB); // let showBC = new THREE.ArrowHelper(BC.clone().normalize(), B, graphics.getMagnitude(BC), 0xff0000);
+      tetrahedronGeometry.direction = BC.clone(); // let showAB = new THREE.ArrowHelper(AB.clone().normalize(), B, graphics.getMagnitude(AB), 0xff0000);
+      // scene.add(showAB);
+      // let showBC = new THREE.ArrowHelper(BC.clone().normalize(), B, graphics.getMagnitude(BC), 0xff0000);
       // scene.add(showBC);
 
       var rotationAngle;
@@ -223,7 +225,13 @@ module.exports = function () {
       var newLocationGeometry = graphics.rotateGeometryAboutLine(tetrahedronGeometry, tetrahedronGeometry[direction][0], tetrahedronGeometry[direction][1], rotationAngle);
       return newLocationGeometry;
     },
-    getDirectionalEdges: function getDirectionalEdges(tetrahedronGeometry, oppositeMidpoint) {},
+    getDirectionalEdges: function getDirectionalEdges(tetrahedronGeometry, oppositeMidpoint) {
+      var directionVector = tetrahedronGeometry.direction;
+      var Oa = new THREE.Vector3(oppositeMidpoint.x + directionVector.x, oppositeMidpoint.y + directionVector.y, oppositeMidpoint.z + oppositeMidpoint.z);
+      console.log(Oa);
+      graphics.showPoint(Oa, scene, orange);
+      graphics.showPoint(oppositeMidpoint, scene, blue);
+    },
     labelDirections: function labelDirections(triangleGeometry, bottomFace) {
       var self = this;
       var midpoints = []; // Get shared edge with parameters and set midpoint to O
