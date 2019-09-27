@@ -76,52 +76,6 @@ module.exports = function() {
 			
 			animate(); 
 		},
-		
-		goLeft: function(tetrahedronGeometry, bottomFace) {
-			
-			let self = this;
-			let geometry = tetrahedronGeometry.clone();
-			geometry = graphics.rotateGeometryAboutLine(geometry, bottomFace.vertices[2], bottomFace.vertices[1],  -1.910633236249);
-
-			let material = new THREE.MeshBasicMaterial({ wireframe: true, color: distinctColors[self.settings.stepCount] });
-			let mesh = new THREE.Mesh(geometry, wireframeMaterial);
-			scene.add(mesh);
-			
-			return geometry;
-		},
-		
-		goRight: function(tetrahedronGeometry, bottomFace) {
-			
-			let self = this;
-			let geometry = tetrahedronGeometry.clone();
-			geometry = graphics.rotateGeometryAboutLine(geometry, bottomFace.vertices[0], bottomFace.vertices[1], 1.910633236249);
-			
-			let material = new THREE.MeshBasicMaterial({ wireframe: true, color: distinctColors[self.settings.stepCount] });
-			let mesh = new THREE.Mesh(geometry, material);
-			scene.add(mesh);
-			
-			// rotate so next move is correct
-			let centroid = graphics.getCentroid(geometry);
-			let top = graphics.getHighestVertex(geometry);
-			graphics.drawLine(centroid, top, scene);
-			geometry = graphics.rotateGeometryAboutLine(geometry, centroid, top, 2 * Math.PI / 3);
-			bottomFace = graphics.rotateGeometryAboutLine(bottomFace, centroid, top, 4 * Math.PI / 3);
-
-			return geometry;
-		},
-
-		goBack: function(tetrahedronGeometry, bottomFace) {
-			
-			let self = this;
-			let geometry = tetrahedronGeometry.clone();
-			geometry = graphics.rotateGeometryAboutLine(geometry, bottomFace.vertices[2], bottomFace.vertices[0], 1.910633236249);
-			
-			let material = new THREE.MeshBasicMaterial({ wireframe: true, color: distinctColors[self.settings.stepCount] });
-			let mesh = new THREE.Mesh(geometry, wireframeMaterial);
-			scene.add(mesh);
-			
-			return geometry;
-		},
 
 		getDirectionVector: function(oppositeMidpoint, top) {
 
@@ -203,20 +157,21 @@ module.exports = function() {
 			let newTetrahedron = new THREE.Mesh(firstRight.clone(), wireframeMaterial);
 			scene.add(newTetrahedron);
 			
-			graphics.showPoint(firstRight.oppositeMidpoint, scene, new THREE.Color('purple'));
 			this.setDirections(firstRight, firstRight.oppositeMidpoint);
 
 			currentStep = startingGeometry;
 		},
 		
-		setDirections(tetrahedronGeometry, oppositeMidpoint) { // TODO: Will need to remove hard-coded vertex indices and calculate based on midpoint placement
-			
-			// tetrahedronGeometry.vertices.forEach(function(vertex, i) {
-			// 	graphics.labelPoint(vertex, i.toString(), scene);
-			// });
+		setDirections(tetrahedronGeometry, oppositeMidpoint) {
 			
 			let bottomFace = graphics.getBottomFace(tetrahedronGeometry);
 			
+			// show step number
+			if (this.settings.stepCount === 1) {
+				let bottomFaceCentroid = graphics.getCentroid2D(bottomFace, scene);
+				graphics.showPoint(bottomFaceCentroid, scene, black);
+				graphics.labelPoint(bottomFaceCentroid, this.settings.stepCount.toString(), scene, black);
+			}
 			
 			if (this.isRightTurn(oppositeMidpoint, bottomFace.vertices[2], bottomFace.vertices[1])) {
 				tetrahedronGeometry.right = [bottomFace.vertices[2], bottomFace.vertices[1]];
@@ -231,19 +186,16 @@ module.exports = function() {
 				tetrahedronGeometry.left = [bottomFace.vertices[0], bottomFace.vertices[1]];
 			}
 			
-			if (this.settings.stepCount === 1) {
-				// graphics.showPoint(tetrahedronGeometry.left[0], scene, black);
-				// graphics.showPoint(tetrahedronGeometry.left[1], scene, black);
-				// graphics.showPoint(tetrahedronGeometry.right[0], scene, green);
-				// graphics.showPoint(tetrahedronGeometry.right[1], scene, green);
-				// graphics.showPoint(tetrahedronGeometry.opposite[0], scene, orange);
-				// graphics.showPoint(tetrahedronGeometry.opposite[1], scene, orange);
+			if (tetrahedronGeometry.direction) {
+				
+				let showBC = new THREE.ArrowHelper(tetrahedronGeometry.direction.clone().normalize(), oppositeMidpoint, graphics.getMagnitude(tetrahedronGeometry.direction), 0xff0000);
+				scene.add(showBC);
 			}
 			
 			graphics.labelPoint(graphics.getMidpoint(tetrahedronGeometry.left[0], tetrahedronGeometry.left[1]), 'L', scene);
 			graphics.labelPoint(graphics.getMidpoint(tetrahedronGeometry.right[0], tetrahedronGeometry.right[1]), 'R', scene);
-			if (this.settings.stepCount === 0) {
-				graphics.labelPoint(oppositeMidpoint, 'O', scene);
+			if (this.settings.stepCount === 1) {
+				graphics.labelPoint(oppositeMidpoint, 'O', scene, distinctColors[this.settings.stepCount]);
 			}
 		},
 
@@ -289,12 +241,13 @@ module.exports = function() {
 			let AB = graphics.createVector(B, A);
 			let BC = graphics.createVector(B, C);
 			BC.setLength(graphics.getMagnitude(AB));
+			tetrahedronGeometry.direction = BC.clone();
 			
 			let showAB = new THREE.ArrowHelper(AB.clone().normalize(), B, graphics.getMagnitude(AB), 0xff0000);
 			scene.add(showAB);
 
-			let showBC = new THREE.ArrowHelper(BC.clone().normalize(), B, graphics.getMagnitude(BC), 0xff0000);
-			scene.add(showBC);
+			// let showBC = new THREE.ArrowHelper(BC.clone().normalize(), B, graphics.getMagnitude(BC), 0xff0000);
+			// scene.add(showBC);
 
 			let rotationAngle;
 			if (direction == 'left') {
@@ -312,6 +265,10 @@ module.exports = function() {
 			let newLocationGeometry = graphics.rotateGeometryAboutLine(tetrahedronGeometry, tetrahedronGeometry[direction][0], tetrahedronGeometry[direction][1], rotationAngle);
 			
 			return newLocationGeometry;
+		},
+		
+		getDirectionalEdges: function(tetrahedronGeometry, oppositeMidpoint) {
+			
 		},
 		
 		labelDirections: function(triangleGeometry, bottomFace) {
