@@ -77,19 +77,6 @@ module.exports = function() {
 			
 			animate(); 
 		},
-
-		getDirectionVector: function(oppositeMidpoint, top) {
-
-			let self = this;
-			top.y = 0;
-
-			currentStep.direction = new THREE.Vector3();
-
-			//currentStep.direction.subVectors(top, oppositeMidpoint).normalize();
-			graphics.drawLine(oppositeMidpoint, top, scene);
-
-			
-		},
 		
 		addTetrahedron: function() {
 			
@@ -261,22 +248,6 @@ module.exports = function() {
 			
 			let oR = graphics.movePoint(oppositeMidpoint, oRVec);
 			graphics.labelPoint(oR, 'oR', scene, orange);
-		},
-		
-		labelDirections: function(triangleGeometry, bottomFace) {
-			
-			let self = this;
-			let midpoints = [];
-
-			// Get shared edge with parameters and set midpoint to O
-			let oppositeEdge = graphics.getSharedVertices(triangleGeometry, bottomFace);
-			let oppositeMidpoint = graphics.getMidpoint(oppositeEdge.vertices[0], oppositeEdge.vertices[1]);
-			graphics.showPoint(oppositeMidpoint, scene, black)
-			graphics.labelPoint(oppositeMidpoint, 'O', scene, black);
-
-			currentStep.oppositeEdge = oppositeEdge;
-
-			currentStep.direction = self.getDirectionVector(oppositeMidpoint, graphics.getHighestVertex(currentStep));
 		},
 		
 		loadFont: function() {

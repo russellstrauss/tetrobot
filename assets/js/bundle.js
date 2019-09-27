@@ -74,33 +74,6 @@ module.exports = function () {
 
       animate();
     },
-    getDirectionVector: function getDirectionVector(oppositeMidpoint, top) {
-      var self = this;
-      top.y = 0;
-      currentStep.direction = new THREE.Vector3(); //currentStep.direction.subVectors(top, oppositeMidpoint).normalize();
-
-      graphics.drawLine(oppositeMidpoint, top, scene);
-    },
-    step: function step(tetrahedronGeometry, direction) {
-      var self = this;
-      var bottomFace = graphics.getBottomFace(tetrahedronGeometry);
-
-      if (direction === 'L') {
-        nextStep = self.goLeft(tetrahedronGeometry, bottomFace);
-      } else if (direction === 'R') {
-        nextStep = self.goRight(tetrahedronGeometry, bottomFace);
-      } else if (direction === 'O') {
-        nextStep = self.goBack(tetrahedronGeometry, bottomFace);
-      } // Calculate which edge of the tetrahedron shares the previous step--the 'O' edge--by comparing which two vertices coincide
-
-
-      previousRollEdge = graphics.getSharedVertices(tetrahedronGeometry, bottomFace);
-      graphics.showPoints(previousRollEdge, scene, 0x00ff00);
-      bottomFace = graphics.getBottomFace(nextStep);
-      self.labelDirections(currentStep, bottomFace);
-      self.settings.stepCount += 1;
-      return nextStep;
-    },
     addTetrahedron: function addTetrahedron() {
       var self = this;
       tetrahedronGeometry = new THREE.TetrahedronGeometry(self.settings.tetrahedron.size, 0);
@@ -242,17 +215,6 @@ module.exports = function () {
       var oR = graphics.movePoint(oppositeMidpoint, oRVec);
       graphics.labelPoint(oR, 'oR', scene, orange);
     },
-    labelDirections: function labelDirections(triangleGeometry, bottomFace) {
-      var self = this;
-      var midpoints = []; // Get shared edge with parameters and set midpoint to O
-
-      var oppositeEdge = graphics.getSharedVertices(triangleGeometry, bottomFace);
-      var oppositeMidpoint = graphics.getMidpoint(oppositeEdge.vertices[0], oppositeEdge.vertices[1]);
-      graphics.showPoint(oppositeMidpoint, scene, black);
-      graphics.labelPoint(oppositeMidpoint, 'O', scene, black);
-      currentStep.oppositeEdge = oppositeEdge;
-      currentStep.direction = self.getDirectionVector(oppositeMidpoint, graphics.getHighestVertex(currentStep));
-    },
     loadFont: function loadFont() {
       var self = this;
       var loader = new THREE.FontLoader();
@@ -284,7 +246,6 @@ module.exports = function () {
         var esc = 27;
 
         if (event.keyCode === L) {
-          currentStep = self.step(currentStep, 'L');
           message.textContent = 'Roll left';
           setTimeout(function () {
             message.textContent = '';
@@ -292,7 +253,6 @@ module.exports = function () {
         }
 
         if (event.keyCode === R) {
-          currentStep = self.step(currentStep, 'R');
           message.textContent = 'Roll right';
           setTimeout(function () {
             message.textContent = '';
@@ -300,7 +260,6 @@ module.exports = function () {
         }
 
         if (event.keyCode === O) {
-          currentStep = self.step(currentStep, 'O');
           message.textContent = 'Roll back';
           setTimeout(function () {
             message.textContent = '';
