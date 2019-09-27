@@ -91,33 +91,6 @@ module.exports = function() {
 			
 		},
 		
-		step: function(tetrahedronGeometry, direction) {
-			
-			let self = this;
-			let bottomFace = graphics.getBottomFace(tetrahedronGeometry);
-			
-			if (direction === 'L') {
-				nextStep = self.goLeft(tetrahedronGeometry, bottomFace);
-			}
-			else if (direction === 'R') {
-				nextStep = self.goRight(tetrahedronGeometry, bottomFace);
-				
-			}
-			else if (direction === 'O') {
-				nextStep = self.goBack(tetrahedronGeometry, bottomFace);
-			}
-			
-			// Calculate which edge of the tetrahedron shares the previous step--the 'O' edge--by comparing which two vertices coincide
-			previousRollEdge = graphics.getSharedVertices(tetrahedronGeometry, bottomFace);
-			graphics.showPoints(previousRollEdge, scene, 0x00ff00);
-
-			bottomFace = graphics.getBottomFace(nextStep);
-			self.labelDirections(currentStep, bottomFace);
-			
-			self.settings.stepCount += 1;
-			return nextStep;
-		},
-		
 		addTetrahedron: function() {
 			
 			let self = this;
@@ -345,27 +318,21 @@ module.exports = function() {
 				let esc = 27;
 				
 				if (event.keyCode === L) {
-					
-					currentStep = self.step(currentStep, 'L');
-					
+										
 					message.textContent = 'Roll left';
 					setTimeout(function() {
 						message.textContent = '';
 					}, self.settings.messageDuration);
 				}
 				if (event.keyCode === R) {
-					
-					currentStep = self.step(currentStep, 'R');
-					
+										
 					message.textContent = 'Roll right';
 					setTimeout(function() {
 						message.textContent = '';
 					}, self.settings.messageDuration);
 				}
 				if (event.keyCode === O) {
-					
-					currentStep = self.step(currentStep, 'O');
-					
+										
 					message.textContent = 'Roll back';
 					setTimeout(function() {
 						message.textContent = '';
