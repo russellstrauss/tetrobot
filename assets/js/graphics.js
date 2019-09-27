@@ -396,6 +396,10 @@
 					graphics.activateLightHelpers(lights);
 				}
 			},
+			
+			movePoint: function(pt, vec) {
+				return new THREE.Vector3(pt.x + vec.x, pt.y + vec.y, pt.z + vec.z);
+			},
 
 			createTriangle: function(pt1, pt2, pt3) { // return geometry
 				let triangleGeometry = new THREE.Geometry();

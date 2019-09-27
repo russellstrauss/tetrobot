@@ -152,8 +152,8 @@ module.exports = function () {
       }
 
       if (tetrahedronGeometry.direction) {
-        var showBC = new THREE.ArrowHelper(tetrahedronGeometry.direction.clone().normalize(), oppositeMidpoint, graphics.getMagnitude(tetrahedronGeometry.direction), 0x0000ff);
-        scene.add(showBC);
+        // let showBC = new THREE.ArrowHelper(tetrahedronGeometry.direction.clone().normalize(), oppositeMidpoint, graphics.getMagnitude(tetrahedronGeometry.direction), 0x0000ff);
+        // scene.add(showBC);
         this.getDirectionalEdges(tetrahedronGeometry, oppositeMidpoint);
       }
 
@@ -202,11 +202,7 @@ module.exports = function () {
       var AB = graphics.createVector(B, A);
       var BC = graphics.createVector(B, C);
       BC.setLength(graphics.getMagnitude(AB));
-      tetrahedronGeometry.direction = BC.clone(); // let showAB = new THREE.ArrowHelper(AB.clone().normalize(), B, graphics.getMagnitude(AB), 0xff0000);
-      // scene.add(showAB);
-      // let showBC = new THREE.ArrowHelper(BC.clone().normalize(), B, graphics.getMagnitude(BC), 0xff0000);
-      // scene.add(showBC);
-
+      tetrahedronGeometry.direction = BC.clone();
       var rotationAngle;
 
       if (direction == 'left') {
@@ -226,11 +222,25 @@ module.exports = function () {
       return newLocationGeometry;
     },
     getDirectionalEdges: function getDirectionalEdges(tetrahedronGeometry, oppositeMidpoint) {
-      var directionVector = tetrahedronGeometry.direction;
-      var Oa = new THREE.Vector3(oppositeMidpoint.x + directionVector.x, oppositeMidpoint.y + directionVector.y, oppositeMidpoint.z + oppositeMidpoint.z);
-      console.log(Oa);
-      graphics.showPoint(Oa, scene, orange);
+      var oA = graphics.movePoint(oppositeMidpoint, tetrahedronGeometry.direction);
+      graphics.labelPoint(oA, 'oA', scene, orange);
       graphics.showPoint(oppositeMidpoint, scene, blue);
+      var showBC = new THREE.ArrowHelper(tetrahedronGeometry.direction.clone().normalize(), oppositeMidpoint, graphics.getMagnitude(tetrahedronGeometry.direction), 0x0000ff);
+      scene.add(showBC);
+      var oLVec = tetrahedronGeometry.direction.clone();
+      var axis = new THREE.Vector3(0, 1, 0);
+      oLVec.applyAxisAngle(axis, Math.PI / 2); // rotate around Y
+
+      oLVec.setLength(graphics.getDistance(tetrahedronGeometry.vertices[0], tetrahedronGeometry.vertices[1]) / 2.0);
+      var oL = graphics.movePoint(oppositeMidpoint, oLVec);
+      graphics.labelPoint(oL, 'oL', scene, orange);
+      var oRVec = tetrahedronGeometry.direction.clone();
+      axis = new THREE.Vector3(0, 1, 0);
+      oRVec.applyAxisAngle(axis, -Math.PI / 2); // rotate around Y
+
+      oRVec.setLength(graphics.getDistance(tetrahedronGeometry.vertices[0], tetrahedronGeometry.vertices[1]) / 2.0);
+      var oR = graphics.movePoint(oppositeMidpoint, oRVec);
+      graphics.labelPoint(oR, 'oR', scene, orange);
     },
     labelDirections: function labelDirections(triangleGeometry, bottomFace) {
       var self = this;
@@ -644,6 +654,9 @@ module.exports = function () {
         if (graphics.appSettings.activateLightHelpers) {
           graphics.activateLightHelpers(lights);
         }
+      },
+      movePoint: function movePoint(pt, vec) {
+        return new THREE.Vector3(pt.x + vec.x, pt.y + vec.y, pt.z + vec.z);
       },
       createTriangle: function createTriangle(pt1, pt2, pt3) {
         // return geometry

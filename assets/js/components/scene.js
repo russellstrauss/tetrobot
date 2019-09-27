@@ -189,8 +189,8 @@ module.exports = function() {
 			
 			if (tetrahedronGeometry.direction) {
 				
-				let showBC = new THREE.ArrowHelper(tetrahedronGeometry.direction.clone().normalize(), oppositeMidpoint, graphics.getMagnitude(tetrahedronGeometry.direction), 0x0000ff);
-				scene.add(showBC);
+				// let showBC = new THREE.ArrowHelper(tetrahedronGeometry.direction.clone().normalize(), oppositeMidpoint, graphics.getMagnitude(tetrahedronGeometry.direction), 0x0000ff);
+				// scene.add(showBC);
 				this.getDirectionalEdges(tetrahedronGeometry, oppositeMidpoint);
 			}
 			
@@ -245,12 +245,6 @@ module.exports = function() {
 			let BC = graphics.createVector(B, C);
 			BC.setLength(graphics.getMagnitude(AB));
 			tetrahedronGeometry.direction = BC.clone();
-			
-			// let showAB = new THREE.ArrowHelper(AB.clone().normalize(), B, graphics.getMagnitude(AB), 0xff0000);
-			// scene.add(showAB);
-
-			// let showBC = new THREE.ArrowHelper(BC.clone().normalize(), B, graphics.getMagnitude(BC), 0xff0000);
-			// scene.add(showBC);
 
 			let rotationAngle;
 			if (direction == 'left') {
@@ -272,12 +266,28 @@ module.exports = function() {
 		
 		getDirectionalEdges: function(tetrahedronGeometry, oppositeMidpoint) {
 			
-			let directionVector = tetrahedronGeometry.direction;
-			
-			let Oa = new THREE.Vector3(oppositeMidpoint.x + directionVector.x, oppositeMidpoint.y + directionVector.y, oppositeMidpoint.z + oppositeMidpoint.z);
-			console.log(Oa);
-			graphics.showPoint(Oa, scene, orange);
+			let oA = graphics.movePoint(oppositeMidpoint, tetrahedronGeometry.direction);
+			graphics.labelPoint(oA, 'oA', scene, orange);
 			graphics.showPoint(oppositeMidpoint, scene, blue);
+			
+			let showBC = new THREE.ArrowHelper(tetrahedronGeometry.direction.clone().normalize(), oppositeMidpoint, graphics.getMagnitude(tetrahedronGeometry.direction), 0x0000ff);
+			scene.add(showBC);
+			
+			let oLVec = tetrahedronGeometry.direction.clone();
+			let axis = new THREE.Vector3(0, 1, 0);
+			oLVec.applyAxisAngle(axis, Math.PI / 2); // rotate around Y
+			oLVec.setLength(graphics.getDistance(tetrahedronGeometry.vertices[0], tetrahedronGeometry.vertices[1])/2.0);
+			
+			let oL = graphics.movePoint(oppositeMidpoint, oLVec);
+			graphics.labelPoint(oL, 'oL', scene, orange);
+			
+			let oRVec = tetrahedronGeometry.direction.clone();
+			axis = new THREE.Vector3(0, 1, 0);
+			oRVec.applyAxisAngle(axis, -Math.PI / 2); // rotate around Y
+			oRVec.setLength(graphics.getDistance(tetrahedronGeometry.vertices[0], tetrahedronGeometry.vertices[1])/2.0);
+			
+			let oR = graphics.movePoint(oppositeMidpoint, oRVec);
+			graphics.labelPoint(oR, 'oR', scene, orange);
 		},
 		
 		labelDirections: function(triangleGeometry, bottomFace) {
