@@ -367,7 +367,7 @@
 				controls.zoomSpeed = 2;
 				controls.enablePan = !utils.mobile();
 				controls.minDistance = 10;
-				controls.maxDistance = 100;
+				controls.maxDistance = 500;
 				controls.maxPolarAngle = Math.PI / 2;
 				return controls;
 			},
