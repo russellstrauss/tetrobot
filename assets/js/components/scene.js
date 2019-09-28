@@ -28,6 +28,9 @@ module.exports = function() {
 	previousRollEdge.vertices = [];
 	var step;
 	var newTetrahedron;
+	var body = new THREE.TetrahedronGeometry(5/4.0, 0);
+	var bodyMesh = new THREE.Mesh(body, shadeMaterial);
+	var arrowHelper;
 	
 	return {
 		
@@ -73,8 +76,10 @@ module.exports = function() {
 				controls.update();
 				stats.update();
 				
-				tetrahedron.geometry = graphics.rotateGeometryAboutLine(tetrahedron.geometry, tetrahedron.geometry.vertices[0], tetrahedron.geometry.vertices[1],  .00000001);
-				tetrahedron.verticesNeedUpdate = true;
+				//body.applyMatrix( new THREE.Matrix4().makeRotationAxis( graphics.createVector(tetrahedronGeometry['left'][1], tetrahedronGeometry['left'][0]).normalize(), -.001 ) ); // Rotate to be flat on floor
+
+				body.verticesNeedUpdate = true;
+				bodyMesh.verticesNeedUpdate = true;
 			};
 			
 			animate(); 
@@ -95,25 +100,17 @@ module.exports = function() {
 			
 			let startingGeometry = tetrahedronGeometry.clone();
 			
-			for (let i = 0; i < tetrahedronGeometry.vertices.length; i++) {
-				
-				let colors = 	[0xCE3611, 	0x00CE17, 	0x03BAEE, 	0x764E8C]; 
-				// 				[red, 		green, 		blue, 		purple]
-				
-				tetrahedronGeometry.verticesNeedUpdate = true;
-			}
-			
 			tetrahedron = new THREE.Mesh(startingGeometry, wireframeMaterial);
 			scene.add(tetrahedron);
 
 			tetrahedronGeometry.oppositeMidpoint = graphics.getMidpoint(tetrahedronGeometry.vertices[0], tetrahedronGeometry.vertices[3]);
-			
+			tetrahedronGeometry.top = graphics.getHighestVertex(tetrahedronGeometry);
 			tetrahedronGeometry.opposite = [tetrahedronGeometry.vertices[0], tetrahedronGeometry.vertices[3]];
 			tetrahedronGeometry.acrossDirection = graphics.createVector(tetrahedronGeometry.oppositeMidpoint, tetrahedronGeometry.vertices[1]);
 			
 			this.getDirectionalEdges(tetrahedronGeometry, tetrahedronGeometry.oppositeMidpoint);
 			
-			
+			this.addBody(tetrahedronGeometry);
 			// step = this.addNextStep(tetrahedronGeometry, startingOppositeMidpoint, 'left');
 			// newTetrahedron = new THREE.Mesh(step.clone(), wireframeMaterial);
 			// scene.add(newTetrahedron);
@@ -197,8 +194,19 @@ module.exports = function() {
 			}
 			
 			this.settings.stepCount++;
-
+			
 			let newLocationGeometry = graphics.rotateGeometryAboutLine(tetrahedronGeometry, tetrahedronGeometry[direction][0], tetrahedronGeometry[direction][1], rotationAngle);
+			
+			graphics.rotateGeometryAboutLine(body, tetrahedronGeometry[direction][0], tetrahedronGeometry[direction][1], rotationAngle);
+			let rotationAxis = graphics.createVector(tetrahedronGeometry[direction][0], tetrahedronGeometry[direction][1]);
+			
+			body.applyMatrix( new THREE.Matrix4().makeRotationAxis( rotationAxis.clone().normalize(), rotationAngle ) );
+
+			var origin = new THREE.Vector3( 0, 0, 0 );
+			scene.remove(arrowHelper)
+			arrowHelper = new THREE.ArrowHelper( rotationAxis.clone().normalize(), origin, graphics.getMagnitude(rotationAxis), black );
+			scene.add( arrowHelper );
+			
 			
 			return newLocationGeometry;
 		},
@@ -229,6 +237,30 @@ module.exports = function() {
 			tetrahedronGeometry.oA = oA;
 			tetrahedronGeometry.mL = graphics.getMidpoint(oL, oA);
 			tetrahedronGeometry.mR = graphics.getMidpoint(oR, oA);
+		},
+		
+		addBody: function(tetrahedronGeometry) {
+			
+			body.applyMatrix( new THREE.Matrix4().makeRotationAxis( new THREE.Vector3( 1, 0, -1 ).normalize(), Math.atan( Math.sqrt(2)) ) ); // Rotate to be flat on floor
+			body.rotateY(Math.PI/4); // rotate to line up with x-axis
+			let centroidOfBottomFace = graphics.getCentroidOfBottomFace(body);
+			let tetrahedronHeight = graphics.getDistance(centroidOfBottomFace, body.vertices[2]);
+			
+			let centroid = graphics.getCentroid3D(tetrahedronGeometry);
+			body.translate(0 , centroid.y, 0);
+			
+			scene.add(bodyMesh);
+			this.addLegs();
+		},
+		
+		addLegs: function() {
+			
+			let bodyTop = graphics.getHighestVertex(body);
+			
+			for (let i = 0; i < body.vertices.length; i++) {
+				
+				graphics.drawLine(body.vertices[i], tetrahedronGeometry.vertices[i], scene, green);
+			}
 		},
 		
 		loadFont: function() {
@@ -272,6 +304,7 @@ module.exports = function() {
 				if (event.keyCode === L) {
 					
 					step = self.addNextStep(tetrahedronGeometry, tetrahedronGeometry.oppositeMidpoint, 'left');
+					scene.remove(newTetrahedron);
 					newTetrahedron = new THREE.Mesh(step.clone(), wireframeMaterial);
 					scene.add(newTetrahedron);
 										
@@ -283,6 +316,7 @@ module.exports = function() {
 				if (event.keyCode === R) {
 					
 					step = self.addNextStep(tetrahedronGeometry, tetrahedronGeometry.oppositeMidpoint, 'right');
+					scene.remove(newTetrahedron);
 					newTetrahedron = new THREE.Mesh(step.clone(), wireframeMaterial);
 					scene.add(newTetrahedron);
 										
@@ -294,8 +328,10 @@ module.exports = function() {
 				if (event.keyCode === O) {
 					
 					step = self.addNextStep(tetrahedronGeometry, tetrahedronGeometry.oppositeMidpoint, 'opposite');
+					scene.remove(newTetrahedron);
 					newTetrahedron = new THREE.Mesh(step.clone(), wireframeMaterial);
-										
+					scene.add(newTetrahedron);
+					
 					message.textContent = 'Roll back';
 					setTimeout(function() {
 						message.textContent = '';
