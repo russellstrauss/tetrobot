@@ -208,7 +208,7 @@
 				let self = this;
 				
 				for (let i = 0; i < geometry.vertices.length; i++) {
-					geometry.vertices[i] = graphics.rotatePointAboutLine(geometry.vertices[i], axisPt1, axisPt2, angle);
+					geometry.vertices[i].set(graphics.rotatePointAboutLine(geometry.vertices[i], axisPt1, axisPt2, angle).x, graphics.rotatePointAboutLine(geometry.vertices[i], axisPt1, axisPt2, angle).y, graphics.rotatePointAboutLine(geometry.vertices[i], axisPt1, axisPt2, angle).z );
 				}
 				
 				return geometry;

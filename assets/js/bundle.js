@@ -85,9 +85,13 @@ module.exports = function () {
         // tetGeo.verticesNeedUpdate = true;
 
         tetrahedronGeometry.verticesNeedUpdate = true; //body.applyMatrix( new THREE.Matrix4().makeRotationAxis( graphics.createVector(tetrahedronGeometry['left'][1], tetrahedronGeometry['left'][0]).normalize(), -.001 ) ); // Rotate to be flat on floor
+        //graphics.rotateGeometryAboutLine(body, tetrahedronGeometry['left'][0], tetrahedronGeometry['left'][1], -.005);
 
         body.verticesNeedUpdate = true;
-        bodyMesh.verticesNeedUpdate = true;
+
+        if (step) {
+          step.verticesNeedUpdate = true;
+        }
       };
 
       animate();
@@ -111,18 +115,7 @@ module.exports = function () {
       tetrahedronGeometry.opposite = [tetrahedronGeometry.vertices[0], tetrahedronGeometry.vertices[3]];
       tetrahedronGeometry.acrossDirection = graphics.createVector(tetrahedronGeometry.oppositeMidpoint, tetrahedronGeometry.vertices[1]);
       this.getDirectionalEdges(tetrahedronGeometry, tetrahedronGeometry.oppositeMidpoint);
-      this.addBody(tetrahedronGeometry); // step = this.addNextStep(tetrahedronGeometry, startingOppositeMidpoint, 'left');
-      // newTetrahedron = new THREE.Mesh(step.clone(), wireframeMaterial);
-      // scene.add(newTetrahedron);
-      // let directions = ['left', 'right', 'opposite'];
-      // let newStep;
-      // for (let i = 0; i < 100; i++) {
-      // 	console.log(directions[i%2]);
-      // 	newStep = this.addNextStep(tetrahedronGeometry, tetrahedronGeometry.oppositeMidpoint, directions[utils.randomInt(0, 2)]);
-      // 	newTetrahedron = new THREE.Mesh(newStep.clone(), wireframeMaterial);
-      // 	scene.add(newTetrahedron);
-      // }
-
+      this.addBody(tetrahedronGeometry);
       currentStep = startingGeometry;
     },
     isRightTurn: function isRightTurn(startingPoint, turningPoint, endingPoint) {
@@ -190,11 +183,6 @@ module.exports = function () {
       var newLocationGeometry = graphics.rotateGeometryAboutLine(tetrahedronGeometry, tetrahedronGeometry[direction][0], tetrahedronGeometry[direction][1], rotationAngle);
       graphics.rotateGeometryAboutLine(body, tetrahedronGeometry[direction][0], tetrahedronGeometry[direction][1], rotationAngle);
       var rotationAxis = graphics.createVector(tetrahedronGeometry[direction][0], tetrahedronGeometry[direction][1]);
-      body.applyMatrix(new THREE.Matrix4().makeRotationAxis(rotationAxis.clone().normalize(), rotationAngle));
-      var origin = new THREE.Vector3(0, 0, 0);
-      scene.remove(arrowHelper);
-      arrowHelper = new THREE.ArrowHelper(rotationAxis.clone().normalize(), origin, graphics.getMagnitude(rotationAxis), black);
-      scene.add(arrowHelper);
       return newLocationGeometry;
     },
     getDirectionalEdges: function getDirectionalEdges(tetrahedronGeometry, oppositeMidpoint) {
@@ -479,7 +467,7 @@ module.exports = function () {
         var self = this;
 
         for (var i = 0; i < geometry.vertices.length; i++) {
-          geometry.vertices[i] = graphics.rotatePointAboutLine(geometry.vertices[i], axisPt1, axisPt2, angle);
+          geometry.vertices[i].set(graphics.rotatePointAboutLine(geometry.vertices[i], axisPt1, axisPt2, angle).x, graphics.rotatePointAboutLine(geometry.vertices[i], axisPt1, axisPt2, angle).y, graphics.rotatePointAboutLine(geometry.vertices[i], axisPt1, axisPt2, angle).z);
         }
 
         return geometry;
