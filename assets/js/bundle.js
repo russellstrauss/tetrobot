@@ -23,7 +23,6 @@ module.exports = function () {
     transparent: true
   });
   var distinctColors = [new THREE.Color('#e6194b'), new THREE.Color('#3cb44b'), new THREE.Color('#ffe119'), new THREE.Color('#4363d8'), new THREE.Color('#f58231'), new THREE.Color('#911eb4'), new THREE.Color('#46f0f0'), new THREE.Color('#f032e6'), new THREE.Color('#bcf60c'), new THREE.Color('#fabebe'), new THREE.Color('#008080'), new THREE.Color('#e6beff'), new THREE.Color('#9a6324'), new THREE.Color('#fffac8'), new THREE.Color('#800000'), new THREE.Color('#aaffc3'), new THREE.Color('#808000'), new THREE.Color('#ffd8b1'), new THREE.Color('#000075'), new THREE.Color('#808080'), new THREE.Color('#ffffff'), new THREE.Color('#000000')];
-  var currentStep;
   var nextStep, top, center; // testing
 
   var black = new THREE.Color('black');
@@ -34,9 +33,10 @@ module.exports = function () {
   previousRollEdge.vertices = [];
   var step;
   var newTetrahedron;
-  var body = new THREE.TetrahedronGeometry(5 / 4.0, 0);
+  var body = new THREE.TetrahedronGeometry(5 / 3.0, 0);
   var bodyMesh = new THREE.Mesh(body, shadeMaterial);
   var arrowHelper;
+  var legs = [];
   return {
     settings: {
       tetrahedron: {
@@ -83,14 +83,20 @@ module.exports = function () {
         // 	vertex.set(vertex.x, vertex.y + .01, vertex.z);
         // });
         // tetGeo.verticesNeedUpdate = true;
-
-        tetrahedronGeometry.verticesNeedUpdate = true; //body.applyMatrix( new THREE.Matrix4().makeRotationAxis( graphics.createVector(tetrahedronGeometry['left'][1], tetrahedronGeometry['left'][0]).normalize(), -.001 ) ); // Rotate to be flat on floor
+        //body.applyMatrix( new THREE.Matrix4().makeRotationAxis( graphics.createVector(tetrahedronGeometry['left'][1], tetrahedronGeometry['left'][0]).normalize(), -.001 ) ); // Rotate to be flat on floor
         //graphics.rotateGeometryAboutLine(body, tetrahedronGeometry['left'][0], tetrahedronGeometry['left'][1], -.005);
 
+        tetrahedronGeometry.verticesNeedUpdate = true;
         body.verticesNeedUpdate = true;
 
         if (step) {
           step.verticesNeedUpdate = true;
+        }
+
+        if (legs.length) {
+          legs.forEach(function (legGeometry) {
+            legGeometry.verticesNeedUpdate = true;
+          });
         }
       };
 
@@ -107,16 +113,13 @@ module.exports = function () {
       var tetrahedronHeight = graphics.getDistance(centroidOfBottomFace, tetrahedronGeometry.vertices[2]);
       tetrahedronGeometry.translate(0, tetrahedronHeight / 4, 0);
       triangleGeometry = graphics.getBottomFace(tetrahedronGeometry);
-      var startingGeometry = tetrahedronGeometry.clone();
-      tetrahedron = new THREE.Mesh(startingGeometry, wireframeMaterial);
+      tetrahedron = new THREE.Mesh(tetrahedronGeometry, wireframeMaterial);
       scene.add(tetrahedron);
       tetrahedronGeometry.oppositeMidpoint = graphics.getMidpoint(tetrahedronGeometry.vertices[0], tetrahedronGeometry.vertices[3]);
-      tetrahedronGeometry.top = graphics.getHighestVertex(tetrahedronGeometry);
       tetrahedronGeometry.opposite = [tetrahedronGeometry.vertices[0], tetrahedronGeometry.vertices[3]];
       tetrahedronGeometry.acrossDirection = graphics.createVector(tetrahedronGeometry.oppositeMidpoint, tetrahedronGeometry.vertices[1]);
       this.getDirectionalEdges(tetrahedronGeometry, tetrahedronGeometry.oppositeMidpoint);
       this.addBody(tetrahedronGeometry);
-      currentStep = startingGeometry;
     },
     isRightTurn: function isRightTurn(startingPoint, turningPoint, endingPoint) {
       // This might only work if vectors are flat on the ground since I am using y-component to determine sign
@@ -159,8 +162,7 @@ module.exports = function () {
       var BC = graphics.createVector(B, C);
       BC.setLength(graphics.getMagnitude(AB));
       tetrahedronGeometry.direction = BC.clone();
-      tetrahedronGeometry.acrossDirection = BC.clone(); //graphics.labelPoint(graphics.getCentroid3D(tetrahedronGeometry), this.settings.stepCount.toString(), scene, black);
-
+      tetrahedronGeometry.acrossDirection = BC.clone();
       var rotationAngle;
 
       if (direction == 'left') {
@@ -182,7 +184,9 @@ module.exports = function () {
       this.settings.stepCount++;
       var newLocationGeometry = graphics.rotateGeometryAboutLine(tetrahedronGeometry, tetrahedronGeometry[direction][0], tetrahedronGeometry[direction][1], rotationAngle);
       graphics.rotateGeometryAboutLine(body, tetrahedronGeometry[direction][0], tetrahedronGeometry[direction][1], rotationAngle);
-      var rotationAxis = graphics.createVector(tetrahedronGeometry[direction][0], tetrahedronGeometry[direction][1]);
+      legs.forEach(function (legGeometry) {
+        graphics.rotateGeometryAboutLine(legGeometry, tetrahedronGeometry[direction][0], tetrahedronGeometry[direction][1], rotationAngle);
+      });
       return newLocationGeometry;
     },
     getDirectionalEdges: function getDirectionalEdges(tetrahedronGeometry, oppositeMidpoint) {
@@ -222,9 +226,17 @@ module.exports = function () {
     },
     addLegs: function addLegs() {
       var bodyTop = graphics.getHighestVertex(body);
+      var material = new THREE.LineBasicMaterial({
+        color: 0xff0000
+      });
 
       for (var i = 0; i < body.vertices.length; i++) {
-        graphics.drawLine(body.vertices[i], tetrahedronGeometry.vertices[i], scene, green);
+        var legGeometry = new THREE.Geometry();
+        var midpoint = graphics.getMidpoint(body.vertices[i], tetrahedronGeometry.vertices[i]);
+        legGeometry.vertices.push(new THREE.Vector3(body.vertices[i].x, body.vertices[i].y, body.vertices[i].z), new THREE.Vector3(midpoint.x, midpoint.y + 1, midpoint.z), new THREE.Vector3(tetrahedronGeometry.vertices[i].x, tetrahedronGeometry.vertices[i].y, tetrahedronGeometry.vertices[i].z));
+        var line = new THREE.Line(legGeometry, material);
+        scene.add(line);
+        legs.push(legGeometry);
       }
     },
     loadFont: function loadFont() {
@@ -258,10 +270,7 @@ module.exports = function () {
         var esc = 27;
 
         if (event.keyCode === L) {
-          step = self.addNextStep(tetrahedronGeometry, tetrahedronGeometry.oppositeMidpoint, 'left');
-          scene.remove(newTetrahedron);
-          newTetrahedron = new THREE.Mesh(step.clone(), wireframeMaterial);
-          scene.add(newTetrahedron);
+          self.addNextStep(tetrahedronGeometry, tetrahedronGeometry.oppositeMidpoint, 'left');
           message.textContent = 'Roll left';
           setTimeout(function () {
             message.textContent = '';
@@ -269,10 +278,7 @@ module.exports = function () {
         }
 
         if (event.keyCode === R) {
-          step = self.addNextStep(tetrahedronGeometry, tetrahedronGeometry.oppositeMidpoint, 'right');
-          scene.remove(newTetrahedron);
-          newTetrahedron = new THREE.Mesh(step.clone(), wireframeMaterial);
-          scene.add(newTetrahedron);
+          self.addNextStep(tetrahedronGeometry, tetrahedronGeometry.oppositeMidpoint, 'right');
           message.textContent = 'Roll right';
           setTimeout(function () {
             message.textContent = '';
@@ -280,10 +286,7 @@ module.exports = function () {
         }
 
         if (event.keyCode === O) {
-          step = self.addNextStep(tetrahedronGeometry, tetrahedronGeometry.oppositeMidpoint, 'opposite');
-          scene.remove(newTetrahedron);
-          newTetrahedron = new THREE.Mesh(step.clone(), wireframeMaterial);
-          scene.add(newTetrahedron);
+          self.addNextStep(tetrahedronGeometry, tetrahedronGeometry.oppositeMidpoint, 'opposite');
           message.textContent = 'Roll back';
           setTimeout(function () {
             message.textContent = '';
