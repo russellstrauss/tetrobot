@@ -2,7 +2,6 @@ module.exports = function() {
 	
 	var tetrahedron, renderer, scene, camera, controls;
 	var tetrahedronGeometry;
-	var triangleGeometry;
 	var stats = new Stats();
 	var wireframeMaterial = new THREE.MeshBasicMaterial({ wireframe: true, color: 0x08CDFA });
 	var shadeMaterial = new THREE.MeshPhongMaterial({
@@ -11,26 +10,16 @@ module.exports = function() {
 		opacity: .5,
 		transparent: true
 	});
-	var degradingMaterial = new THREE.MeshBasicMaterial({
-		wireframe: true,
-		color: 0x08CDFA,
-		opacity: 1,
-		transparent: true
-	});
-	var distinctColors = [new THREE.Color('#e6194b'), new THREE.Color('#3cb44b'), new THREE.Color('#ffe119'), new THREE.Color('#4363d8'), new THREE.Color('#f58231'), new THREE.Color('#911eb4'), new THREE.Color('#46f0f0'), new THREE.Color('#f032e6'), new THREE.Color('#bcf60c'), new THREE.Color('#fabebe'), new THREE.Color('#008080'), new THREE.Color('#e6beff'), new THREE.Color('#9a6324'), new THREE.Color('#fffac8'), new THREE.Color('#800000'), new THREE.Color('#aaffc3'), new THREE.Color('#808000'), new THREE.Color('#ffd8b1'), new THREE.Color('#000075'), new THREE.Color('#808080'), new THREE.Color('#ffffff'), new THREE.Color('#000000')];
-	var nextStep, top, center; // testing
-	var black = new THREE.Color('black');
-	var green = new THREE.Color('green');
-	var blue = new THREE.Color('blue');
-	var orange = new THREE.Color('orange');
-	var previousRollEdge = {};
-	previousRollEdge.vertices = [];
-	var step;
-	var newTetrahedron;
+
 	var body = new THREE.TetrahedronGeometry(5/3.0, 0);
 	var bodyMesh = new THREE.Mesh(body, shadeMaterial);
 	var arrowHelper;
 	var legs = [];
+	var rolling = false;
+	var rollDirection;
+	var animationSpeed = .05;
+	var rotated = 0;
+	var rotationAngle;
 	
 	return {
 		
@@ -72,12 +61,6 @@ module.exports = function() {
 			var tetGeo = new THREE.TetrahedronGeometry(4, 0);
 			var tetMesh = new THREE.Mesh(tetGeo, shadeMaterial);
 			
-			// tetGeo.vertices.forEach(function(vertex) {
-			// 	vertex.set(vertex.x, vertex.y + 5, vertex.z);
-			// });
-			// tetGeo.verticesNeedUpdate = true;
-			// scene.add(tetMesh);
-			
 			var animate = function() {
 
 				requestAnimationFrame(animate);
@@ -85,20 +68,29 @@ module.exports = function() {
 				controls.update();
 				stats.update();
 				
-				// how to move a mesh when geometry is updated
-				// tetGeo.vertices.forEach(function(vertex) {
-				// 	vertex.set(vertex.x, vertex.y + .01, vertex.z);
-				// });
-				// tetGeo.verticesNeedUpdate = true;
 				
+				// if (rolling) {
+				// 	console.log(rotated, rotationAngle);
+				// 	let complete;
+				// 	if (rotationAngle < -1) {
+				// 		complete = rotated < rotationAngle;
+				// 	}
+				// 	else {
+				// 		complete = rotated > rotationAngle;
+				// 	}
+				// 	if (!complete) {
+				// 		self.doRoll(rollDirection, .01);
+				// 	}
+				// 	// else {
+				// 	// 	rotated = 0;
+				// 	// 	rolling = false;
+				// 	// }
+				// 	rotated += animationSpeed;
+				// }
 				
-				//body.applyMatrix( new THREE.Matrix4().makeRotationAxis( graphics.createVector(tetrahedronGeometry['left'][1], tetrahedronGeometry['left'][0]).normalize(), -.001 ) ); // Rotate to be flat on floor
-				//graphics.rotateGeometryAboutLine(body, tetrahedronGeometry['left'][0], tetrahedronGeometry['left'][1], -.005);
 				tetrahedronGeometry.verticesNeedUpdate = true;
 				body.verticesNeedUpdate = true;
-				if (step) {
-					step.verticesNeedUpdate = true;
-				}
+
 				if (legs.length) {
 					legs.forEach(function(legGeometry) {
 						legGeometry.verticesNeedUpdate = true;
@@ -120,7 +112,6 @@ module.exports = function() {
 			let tetrahedronHeight = graphics.getDistance(centroidOfBottomFace, tetrahedronGeometry.vertices[2]);
 			
 			tetrahedronGeometry.translate(0 , tetrahedronHeight / 4, 0);
-			triangleGeometry = graphics.getBottomFace(tetrahedronGeometry);
 			
 			tetrahedron = new THREE.Mesh(tetrahedronGeometry, wireframeMaterial);
 			scene.add(tetrahedron);
@@ -180,8 +171,7 @@ module.exports = function() {
 			BC.setLength(graphics.getMagnitude(AB));
 			tetrahedronGeometry.direction = BC.clone();
 			tetrahedronGeometry.acrossDirection = BC.clone();
-		
-			let rotationAngle;
+			
 			if (direction == 'left') {
 				rotationAngle = -1 * graphics.getAngleBetweenVectors(AB, BC);
 			}
@@ -197,17 +187,16 @@ module.exports = function() {
 				}
 			}
 			
+			this.doRoll(direction, rotationAngle);
 			this.settings.stepCount++;
-			
-			let newLocationGeometry = graphics.rotateGeometryAboutLine(tetrahedronGeometry, tetrahedronGeometry[direction][0], tetrahedronGeometry[direction][1], rotationAngle);
-			
+		},
+		
+		doRoll: function(direction, rotationAngle) {
+			graphics.rotateGeometryAboutLine(tetrahedronGeometry, tetrahedronGeometry[direction][0], tetrahedronGeometry[direction][1], rotationAngle);
 			graphics.rotateGeometryAboutLine(body, tetrahedronGeometry[direction][0], tetrahedronGeometry[direction][1], rotationAngle);
-			
 			legs.forEach(function(legGeometry) {
 				graphics.rotateGeometryAboutLine(legGeometry, tetrahedronGeometry[direction][0], tetrahedronGeometry[direction][1], rotationAngle);
 			});
-			
-			return newLocationGeometry;
 		},
 		
 		getDirectionalEdges: function(tetrahedronGeometry, oppositeMidpoint) {
@@ -314,7 +303,9 @@ module.exports = function() {
 				
 				if (event.keyCode === L) {
 					
-					self.addNextStep(tetrahedronGeometry, tetrahedronGeometry.oppositeMidpoint, 'left');
+					rollDirection = 'left';
+					//rolling = true;
+					self.addNextStep(tetrahedronGeometry, tetrahedronGeometry.oppositeMidpoint, rollDirection);
 										
 					message.textContent = 'Roll left';
 					setTimeout(function() {
@@ -323,7 +314,9 @@ module.exports = function() {
 				}
 				if (event.keyCode === R) {
 					
-					self.addNextStep(tetrahedronGeometry, tetrahedronGeometry.oppositeMidpoint, 'right');
+					rollDirection = 'right';
+					//rolling = true;
+					self.addNextStep(tetrahedronGeometry, tetrahedronGeometry.oppositeMidpoint, rollDirection);
 										
 					message.textContent = 'Roll right';
 					setTimeout(function() {
@@ -332,22 +325,24 @@ module.exports = function() {
 				}
 				if (event.keyCode === O) {
 					
-					self.addNextStep(tetrahedronGeometry, tetrahedronGeometry.oppositeMidpoint, 'opposite');
+					rollDirection = 'opposite';
+					//rolling = true;
+					self.addNextStep(tetrahedronGeometry, tetrahedronGeometry.oppositeMidpoint, rollDirection);
 					
 					message.textContent = 'Roll back';
 					setTimeout(function() {
 						message.textContent = '';
 					}, self.settings.messageDuration);
 				}
-				if (event.keyCode === esc) {
+				// if (event.keyCode === esc) {
 					
-					graphics.resetScene(self, scene);
+				// 	graphics.resetScene(self, scene);
 					
-					message.textContent = 'Reset scene';
-					setTimeout(function() {
-						message.textContent = '';
-					}, self.settings.messageDuration);
-				}
+				// 	message.textContent = 'Reset scene';
+				// 	setTimeout(function() {
+				// 		message.textContent = '';
+				// 	}, self.settings.messageDuration);
+				// }
 			});
 		}
 	}

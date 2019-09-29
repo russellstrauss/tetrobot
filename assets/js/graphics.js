@@ -284,8 +284,10 @@
 				}
 			},
 
-			drawLine: function(pt1, pt2, scene) {
-			
+			drawLine: function(pt1, pt2, scene, color) {
+				
+				color = color || 0x0000ff;
+				
 				let material = new THREE.LineBasicMaterial({ color: 0x0000ff });
 				let geometry = new THREE.Geometry();
 				geometry.vertices.push(new THREE.Vector3(pt1.x, pt1.y, pt1.z));
