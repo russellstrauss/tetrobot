@@ -69,6 +69,15 @@ module.exports = function() {
 			self.addTetrahedron();
 			graphics.setCameraLocation(camera, self.settings.defaultCameraLocation);
 			
+			var tetGeo = new THREE.TetrahedronGeometry(4, 0);
+			var tetMesh = new THREE.Mesh(tetGeo, shadeMaterial);
+			
+			// tetGeo.vertices.forEach(function(vertex) {
+			// 	vertex.set(vertex.x, vertex.y + 5, vertex.z);
+			// });
+			// tetGeo.verticesNeedUpdate = true;
+			// scene.add(tetMesh);
+			
 			var animate = function() {
 
 				requestAnimationFrame(animate);
@@ -76,8 +85,15 @@ module.exports = function() {
 				controls.update();
 				stats.update();
 				
+				// how to move a mesh when geometry is updated
+				// tetGeo.vertices.forEach(function(vertex) {
+				// 	vertex.set(vertex.x, vertex.y + .01, vertex.z);
+				// });
+				// tetGeo.verticesNeedUpdate = true;
+				
+				tetrahedronGeometry.verticesNeedUpdate = true;
+				
 				//body.applyMatrix( new THREE.Matrix4().makeRotationAxis( graphics.createVector(tetrahedronGeometry['left'][1], tetrahedronGeometry['left'][0]).normalize(), -.001 ) ); // Rotate to be flat on floor
-
 				body.verticesNeedUpdate = true;
 				bodyMesh.verticesNeedUpdate = true;
 			};
